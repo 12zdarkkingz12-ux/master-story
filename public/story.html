@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — تفاصيل القصة</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<div class="container">
+
+  <div id="story-header" class="story-detail-header fade-in">
+    <div style="position:relative">
+      <div class="story-detail-title" id="detail-title">تحميل...</div>
+      <div style="display:flex;gap:.6rem;margin-top:.5rem;flex-wrap:wrap" id="detail-badges"></div>
+    </div>
+    <div style="display:flex;gap:.7rem;margin-top:1.2rem;flex-wrap:wrap">
+      <a id="gen-btn"  href="#" class="btn btn-primary">✦ ولّد فصلاً</a>
+      <a id="lib-btn"  href="#" class="btn btn-secondary">📖 اقرأ القصة</a>
+      <button class="btn btn-ghost btn-sm" onclick="location.href='/dashboard.html'">← رجوع</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="story-tabs">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">نظرة عامة</button>
+    <button class="tab-btn" onclick="switchTab('world', this)">العالم</button>
+    <button class="tab-btn" onclick="switchTab('characters', this)">الشخصيات</button>
+    <button class="tab-btn" onclick="switchTab('timeline', this)">الخط الزمني</button>
+    <button class="tab-btn" onclick="switchTab('chapters', this)">الفصول</button>
+  </div>
+
+  <!-- نظرة عامة -->
+  <div class="tab-content active fade-in" id="tab-overview">
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem">معلومات القصة</div>
+        <div style="display:flex;flex-direction:column;gap:.6rem" id="overview-info"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem">إحصائيات</div>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:.7rem" id="overview-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- العالم -->
+  <div class="tab-content fade-in" id="tab-world">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">عالم القصة</span>
+        <button class="btn btn-primary btn-sm" onclick="saveWorldEdit()">💾 حفظ التعديلات</button>
+      </div>
+      <textarea id="world-edit" rows="20"
+        style="font-size:.95rem;line-height:1.9;min-height:400px"
+        placeholder="بيانات عالم القصة..."></textarea>
+    </div>
+  </div>
+
+  <!-- الشخصيات -->
+  <div class="tab-content fade-in" id="tab-characters">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الشخصيات</span>
+        <button class="btn btn-primary btn-sm" onclick="saveCharsEdit()">💾 حفظ التعديلات</button>
+      </div>
+      <textarea id="chars-edit" rows="20"
+        style="font-size:.95rem;line-height:1.9;min-height:400px"
+        placeholder="بيانات الشخصيات..."></textarea>
+    </div>
+  </div>
+
+  <!-- الخط الزمني -->
+  <div class="tab-content fade-in" id="tab-timeline">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">الخط الزمني</span>
+        <button class="btn btn-primary btn-sm" onclick="saveTimelineEdit()">💾 حفظ التعديلات</button>
+      </div>
+      <textarea id="timeline-edit" rows="20"
+        style="font-size:.95rem;line-height:1.9;min-height:400px"
+        placeholder="الخط الزمني للقصة..."></textarea>
+    </div>
+  </div>
+
+  <!-- الفصول -->
+  <div class="tab-content fade-in" id="tab-chapters">
+    <div id="chapters-list-detail">
+      <div style="text-align:center;padding:2rem;color:var(--text3)">
+        <div class="spinner" style="margin:0 auto 1rem"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+let storyId = null;
+let story   = null;
+
+document.getElementById('navbar-container').innerHTML = buildNavbar('');
+
+async function init() {
+  storyId = getParam('id');
+  if (!storyId) { location.href = '/dashboard.html'; return; }
+
+  const [storyRes, chaptersRes] = await Promise.all([
+    API.get(`/api/stories/${storyId}`),
+    API.get(`/api/stories/${storyId}/chapters`),
+  ]);
+
+  if (!storyRes?.ok) { location.href = '/dashboard.html'; return; }
+  story = storyRes.story;
+
+  renderHeader();
+  renderOverview(chaptersRes?.chapters || []);
+  renderWorldEdit();
+  renderCharsEdit();
+  renderTimelineEdit();
+  renderChaptersList(chaptersRes?.chapters || []);
+}
+
+function renderHeader() {
+  document.title = `${story.title} — Master Story`;
+  document.getElementById('detail-title').textContent = story.title;
+  document.getElementById('detail-badges').innerHTML = `
+    <span class="badge badge-genre">${GENRE_ICONS[story.genre]||'📚'} ${story.genre}</span>
+    <span style="font-size:.82rem;color:var(--text3)">الظلام: ${story.darkness}/10</span>
+    <span style="font-size:.82rem;color:var(--text3)">${timeAgo(story.created_at)}</span>
+  `;
+  document.getElementById('gen-btn').href = `/generate.html?id=${storyId}`;
+  document.getElementById('lib-btn').href = `/library.html?id=${storyId}`;
+}
+
+function renderOverview(chapters) {
+  const approved = chapters.filter(c => c.status === 'approved');
+  const totalWords = approved.reduce((s, c) => s + (c.word_count || 0), 0);
+
+  document.getElementById('overview-info').innerHTML = `
+    <div class="info-row"><span class="info-label">العنوان</span><span>${story.title}</span></div>
+    <div class="info-row"><span class="info-label">النوع</span><span>${story.genre}</span></div>
+    ${story.style ? `<div class="info-row"><span class="info-label">الأسلوب</span><span>${story.style}</span></div>` : ''}
+    <div class="info-row"><span class="info-label">الظلام</span><span>${story.darkness}/10</span></div>
+    <div class="info-row"><span class="info-label">تاريخ الإنشاء</span><span>${formatDate(story.created_at)}</span></div>
+  `;
+
+  document.getElementById('overview-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${approved.length}</div><div class="stat-label">فصل</div></div>
+    <div class="stat-card"><div class="stat-value">${totalWords}</div><div class="stat-label">كلمة</div></div>
+  `;
+}
+
+function renderWorldEdit() {
+  const w = story.world_data;
+  document.getElementById('world-edit').value =
+    (typeof w === 'string') ? w
+    : (w?.raw) ? w.raw
+    : JSON.stringify(w, null, 2);
+}
+
+function renderCharsEdit() {
+  const c = story.characters;
+  document.getElementById('chars-edit').value =
+    (typeof c === 'string') ? c
+    : (c?.raw) ? c.raw
+    : (Array.isArray(c) ? c.join('\n\n') : JSON.stringify(c, null, 2));
+}
+
+function renderTimelineEdit() {
+  const t = story.timeline;
+  document.getElementById('timeline-edit').value =
+    (typeof t === 'string') ? t
+    : (t?.raw) ? t.raw
+    : JSON.stringify(t, null, 2);
+}
+
+function renderChaptersList(chapters) {
+  const list = document.getElementById('chapters-list-detail');
+  const approved = chapters.filter(c => c.status === 'approved');
+
+  if (approved.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📄</div>
+        <p>لا توجد فصول معتمدة بعد</p>
+        <a href="/generate.html?id=${storyId}" class="btn btn-primary" style="margin-top:1rem">ولّد الفصل الأول</a>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = approved.map(c => `
+    <div class="chapter-item fade-in">
+      <span class="chapter-item-num">الفصل ${c.chapter_num}</span>
+      <span class="chapter-item-title">${c.title || 'بدون عنوان'}</span>
+      <div class="chapter-item-meta">
+        <span>${c.word_count} كلمة</span>
+        <span class="badge badge-approved">معتمد</span>
+        <a href="/library.html?id=${storyId}&chapter=${c.id}"
+          class="btn btn-ghost btn-sm">قراءة</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function saveWorldEdit() {
+  const val = document.getElementById('world-edit').value.trim();
+  const res = await API.put(`/api/stories/${storyId}`, { world_data: { raw: val } });
+  res?.ok ? toast('تم حفظ بيانات العالم ✓', 'success') : toast(res?.error || 'فشل', 'error');
+}
+
+async function saveCharsEdit() {
+  const val = document.getElementById('chars-edit').value.trim();
+  const res = await API.put(`/api/stories/${storyId}`, { characters: val });
+  res?.ok ? toast('تم حفظ الشخصيات ✓', 'success') : toast(res?.error || 'فشل', 'error');
+}
+
+async function saveTimelineEdit() {
+  const val = document.getElementById('timeline-edit').value.trim();
+  const res = await API.put(`/api/stories/${storyId}`, { timeline: { raw: val } });
+  res?.ok ? toast('تم حفظ الخط الزمني ✓', 'success') : toast(res?.error || 'فشل', 'error');
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>

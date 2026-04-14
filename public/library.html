@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — المكتبة</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.library-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.chapters-nav {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: sticky; top: 80px;
+}
+
+.chapters-nav-header {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Amiri', serif;
+  font-size: 1rem;
+  color: var(--text2);
+}
+
+.chapter-nav-item {
+  padding: .7rem 1.2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; transition: background var(--trans);
+  border-bottom: 1px solid var(--border);
+  font-size: .88rem;
+}
+
+.chapter-nav-item:last-child { border-bottom: none; }
+.chapter-nav-item:hover { background: var(--card2); }
+.chapter-nav-item.active { background: var(--accent-dim); color: var(--accent); }
+
+.chapter-nav-num {
+  font-size: .75rem; color: var(--text3);
+}
+
+.reader-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.reader-toolbar {
+  padding: .8rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+}
+
+.reader-body { padding: 2rem 2.5rem; min-height: 400px; }
+
+.reader-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .82rem; color: var(--text3);
+}
+
+.font-size-control {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .82rem; color: var(--text2);
+}
+
+.font-btn {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--card2);
+  color: var(--text2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; transition: all var(--trans);
+}
+.font-btn:hover { background: var(--card); color: var(--text); }
+
+/* صفحة القصة مع كل قصصها */
+.all-stories-mode .story-header {
+  text-align: center; padding: 3rem 2rem 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .library-layout { grid-template-columns: 1fr; }
+  .chapters-nav { position: static; }
+  .reader-body { padding: 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<div class="container" id="main-container">
+
+  <!-- وضع: عرض كل القصص -->
+  <div id="all-stories-view" style="display:none">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">المكتبة</h1>
+        <p class="page-subtitle">اختر قصة للقراءة</p>
+      </div>
+    </div>
+    <div class="grid grid-2" id="library-stories-grid"></div>
+  </div>
+
+  <!-- وضع: قراءة قصة معينة -->
+  <div id="story-view" style="display:none">
+    <div class="page-header" style="margin-bottom:1rem">
+      <div>
+        <h1 class="page-title" id="library-story-title">تحميل...</h1>
+        <p class="page-subtitle" id="library-story-meta"></p>
+      </div>
+      <div style="display:flex;gap:.6rem">
+        <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
+        <a id="gen-link" href="/generate.html" class="btn btn-primary btn-sm">✦ ولّد فصلاً</a>
+      </div>
+    </div>
+
+    <div class="library-layout">
+
+      <!-- قائمة الفصول -->
+      <div class="chapters-nav">
+        <div class="chapters-nav-header">الفصول</div>
+        <div id="chapters-nav-list">
+          <div style="padding:1rem;font-size:.85rem;color:var(--text3);text-align:center">
+            لا توجد فصول بعد
+          </div>
+        </div>
+        <!-- معلومات القصة -->
+        <div style="padding:1rem;border-top:1px solid var(--border)">
+          <div class="sidebar-title" style="font-size:.72rem;color:var(--text3);margin-bottom:.6rem">معلومات القصة</div>
+          <div id="story-meta-sidebar" style="font-size:.8rem;color:var(--text3);display:flex;flex-direction:column;gap:.3rem"></div>
+        </div>
+      </div>
+
+      <!-- قارئ الفصول -->
+      <div class="reader-card">
+        <div class="reader-toolbar">
+          <div style="display:flex;gap:.6rem;align-items:center">
+            <button class="btn btn-ghost btn-sm" id="prev-chapter-btn" onclick="navigateChapter(-1)">→ السابق</button>
+            <span id="chapter-position" style="font-size:.82rem;color:var(--text3)">—</span>
+            <button class="btn btn-ghost btn-sm" id="next-chapter-btn" onclick="navigateChapter(1)">← التالي</button>
+          </div>
+          <div class="font-size-control">
+            <span>حجم الخط:</span>
+            <button class="font-btn" onclick="changeFontSize(-1)">−</button>
+            <button class="font-btn" onclick="changeFontSize(1)">+</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="delete-chapter-btn" onclick="deleteCurrentChapter()"
+            style="color:var(--red);border-color:transparent">
+            حذف
+          </button>
+        </div>
+
+        <div class="reader-body" id="reader-body">
+          <div style="text-align:center;padding:3rem;color:var(--text3)">
+            <div style="font-size:2.5rem;opacity:.3;margin-bottom:1rem">📖</div>
+            <p>اختر فصلاً من القائمة</p>
+          </div>
+        </div>
+
+        <div class="reader-footer">
+          <span id="chapter-word-count"></span>
+          <span id="chapter-date"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+let storyId       = null;
+let story         = null;
+let chapters      = [];
+let currentChIdx  = -1;
+let fontSize      = 17;
+
+document.getElementById('navbar-container').innerHTML = buildNavbar('المكتبة');
+
+async function init() {
+  storyId = getParam('id');
+  const targetChapterId = getParam('chapter');
+
+  if (!storyId) {
+    await loadAllStories();
+    return;
+  }
+
+  document.getElementById('story-view').style.display = 'block';
+  document.getElementById('gen-link').href = `/generate.html?id=${storyId}`;
+
+  await loadStoryAndChapters();
+
+  if (targetChapterId) {
+    const idx = chapters.findIndex(c => c.id === targetChapterId);
+    if (idx !== -1) showChapter(idx);
+  } else if (chapters.length > 0) {
+    showChapter(0);
+  }
+}
+
+async function loadAllStories() {
+  document.getElementById('all-stories-view').style.display = 'block';
+  const res = await API.get('/api/stories');
+  const grid = document.getElementById('library-stories-grid');
+
+  if (!res?.ok || !res.stories?.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1">
+      <div class="empty-state">
+        <div class="empty-icon">📚</div>
+        <p>لا توجد قصص بعد. <a href="/wizard.html">ابدأ قصة جديدة</a></p>
+      </div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = res.stories.map(s => `
+    <div class="story-card fade-in" onclick="location.href='/library.html?id=${s.id}'">
+      <div class="story-card-title">${s.title}</div>
+      <div class="story-card-meta">
+        <span class="badge badge-genre">${GENRE_ICONS[s.genre]||'📚'} ${s.genre}</span>
+      </div>
+      <div class="story-card-stats">
+        <span>📄 ${s.chapter_count} فصل</span>
+        <span>🕐 ${timeAgo(s.created_at)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadStoryAndChapters() {
+  const [storyRes, chapRes] = await Promise.all([
+    API.get(`/api/stories/${storyId}`),
+    API.get(`/api/stories/${storyId}/chapters`),
+  ]);
+
+  if (!storyRes?.ok) { location.href = '/library.html'; return; }
+  story = storyRes.story;
+
+  document.getElementById('library-story-title').textContent = story.title;
+  document.getElementById('library-story-meta').textContent =
+    `${GENRE_ICONS[story.genre]||''} ${story.genre} · ${story.chapter_count} فصل`;
+  document.title = `${story.title} — المكتبة`;
+
+  document.getElementById('story-meta-sidebar').innerHTML = `
+    <div>النوع: ${story.genre}</div>
+    <div>الظلام: ${story.darkness}/10</div>
+    <div>تاريخ الإنشاء: ${formatDate(story.created_at)}</div>
+  `;
+
+  chapters = (chapRes?.chapters || []).filter(c => c.status === 'approved');
+  buildChaptersNav();
+}
+
+function buildChaptersNav() {
+  const list = document.getElementById('chapters-nav-list');
+  if (chapters.length === 0) {
+    list.innerHTML = `<div style="padding:1rem;font-size:.85rem;color:var(--text3);text-align:center">
+      لا توجد فصول معتمدة
+    </div>`;
+    return;
+  }
+  list.innerHTML = chapters.map((c, i) => `
+    <div class="chapter-nav-item ${i === currentChIdx ? 'active' : ''}"
+      id="nav-item-${i}" onclick="showChapter(${i})">
+      <span>${c.title || `الفصل ${c.chapter_num}`}</span>
+      <span class="chapter-nav-num">${c.word_count} كلمة</span>
+    </div>
+  `).join('');
+}
+
+async function showChapter(idx) {
+  if (idx < 0 || idx >= chapters.length) return;
+  currentChIdx = idx;
+
+  // تحديث التنقل
+  buildChaptersNav();
+  document.querySelectorAll('.chapter-nav-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  // تحديث أزرار التنقل
+  document.getElementById('prev-chapter-btn').disabled = idx === 0;
+  document.getElementById('next-chapter-btn').disabled = idx === chapters.length - 1;
+  document.getElementById('chapter-position').textContent = `${idx+1} / ${chapters.length}`;
+
+  // جلب المحتوى الكامل
+  const res = await API.get(`/api/chapters/${chapters[idx].id}`);
+  if (!res?.ok) { toast('فشل تحميل الفصل', 'error'); return; }
+
+  const ch = res.chapter;
+
+  document.getElementById('reader-body').innerHTML = `
+    <div class="reader-chapter-title">${ch.title || 'الفصل '+ch.chapter_num}</div>
+    <div class="reader-content chapter-text" style="font-size:${fontSize}px">${escapeHtml(ch.content || '')}</div>
+  `;
+
+  document.getElementById('chapter-word-count').textContent = `${ch.word_count} كلمة`;
+  document.getElementById('chapter-date').textContent = formatDate(ch.created_at);
+  document.getElementById('delete-chapter-btn').dataset.id = ch.id;
+
+  // scroll للأعلى
+  document.getElementById('reader-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function navigateChapter(dir) {
+  showChapter(currentChIdx + dir);
+}
+
+function changeFontSize(delta) {
+  fontSize = Math.max(13, Math.min(24, fontSize + delta));
+  const el = document.querySelector('.reader-content');
+  if (el) el.style.fontSize = fontSize + 'px';
+}
+
+async function deleteCurrentChapter() {
+  const btn = document.getElementById('delete-chapter-btn');
+  const id  = btn.dataset.id;
+  if (!id) return;
+  if (!confirm('هل تريد حذف هذا الفصل نهائياً؟')) return;
+
+  const res = await API.del(`/api/chapters/${id}`);
+  if (res?.ok) {
+    toast('تم حذف الفصل', 'success');
+    await loadStoryAndChapters();
+    if (chapters.length > 0) {
+      showChapter(Math.min(currentChIdx, chapters.length - 1));
+    } else {
+      document.getElementById('reader-body').innerHTML = `
+        <div style="text-align:center;padding:3rem;color:var(--text3)">
+          <p>لا توجد فصول. <a href="/generate.html?id=${storyId}">ولّد فصلاً جديداً</a></p>
+        </div>`;
+    }
+  } else {
+    toast(res?.error || 'فشل الحذف', 'error');
+  }
+}
+
+function goBack() {
+  if (document.referrer.includes('/dashboard')) {
+    history.back();
+  } else {
+    location.href = '/library.html';
+  }
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+}
+
+init();
+</script>
+</body>
+</html>

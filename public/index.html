@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — دخول</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .login-screen { position: relative; z-index: 1; }
+  .decorative-text {
+    position: fixed;
+    font-family: 'Amiri', serif;
+    color: var(--text3);
+    opacity: .07;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    font-size: 1.1rem;
+    line-height: 2.2;
+    z-index: 0;
+    top: 0; left: 0; right: 0;
+    overflow: hidden;
+    height: 100vh;
+  }
+</style>
+</head>
+<body>
+
+<div class="decorative-text" aria-hidden="true">
+  كان يا ما كان في قديم الزمان، في أرض بعيدة عن العيون، وكانت الأرواح تهمس بأسرار الغابات والبحار. كان البطل يقف وحيداً أمام مصيره المجهول. في تلك اللحظة أدرك أن الكلمات أقوى من السيوف، والحكايا أبقى من الأبطال أنفسهم. قرر أن يكتب قصته بيديه، لا أن تُكتب عنه.
+  كان يا ما كان في قديم الزمان، في أرض بعيدة عن العيون، وكانت الأرواح تهمس بأسرار الغابات والبحار. كان البطل يقف وحيداً أمام مصيره المجهول.
+</div>
+
+<div class="login-screen">
+  <div class="login-box fade-in">
+
+    <div class="login-logo">
+      <div style="font-size:3.5rem;margin-bottom:.5rem">🌙</div>
+      <div class="logo-title">Master Story</div>
+      <div class="logo-sub">منصة كتابة الروايات بالذكاء الاصطناعي</div>
+    </div>
+
+    <div class="card">
+      <div id="error-msg" class="alert alert-error" style="display:none"></div>
+
+      <div class="form-group">
+        <label for="password">كلمة المرور</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="أدخل كلمة المرور..."
+          autocomplete="current-password"
+          autofocus
+        >
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg" id="login-btn" onclick="doLogin()">
+        <span id="btn-label">دخول</span>
+        <span id="btn-spinner" class="spinner" style="display:none;width:16px;height:16px;border-width:2px"></span>
+      </button>
+    </div>
+
+    <p style="text-align:center;margin-top:1.2rem;font-size:.8rem;color:var(--text3)">
+      Master Story v2.0 · كُتب بعناية للكتّاب العرب
+    </p>
+
+  </div>
+</div>
+
+<script>
+async function doLogin() {
+  const pwd = document.getElementById('password').value.trim();
+  const err = document.getElementById('error-msg');
+  const btn = document.getElementById('login-btn');
+  const lbl = document.getElementById('btn-label');
+  const sp  = document.getElementById('btn-spinner');
+
+  err.style.display = 'none';
+  if (!pwd) {
+    err.textContent = 'أدخل كلمة المرور';
+    err.style.display = 'flex';
+    return;
+  }
+
+  btn.disabled = true;
+  lbl.style.display = 'none';
+  sp.style.display  = 'inline-block';
+
+  try {
+    const r = await fetch('/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ password: pwd }),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      location.href = data.redirect || '/dashboard.html';
+    } else {
+      err.textContent = data.error || 'خطأ في تسجيل الدخول';
+      err.style.display = 'flex';
+      btn.disabled = false;
+      lbl.style.display = 'inline';
+      sp.style.display  = 'none';
+    }
+  } catch (e) {
+    err.textContent = 'خطأ في الاتصال بالخادم';
+    err.style.display = 'flex';
+    btn.disabled = false;
+    lbl.style.display = 'inline';
+    sp.style.display  = 'none';
+  }
+}
+
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>

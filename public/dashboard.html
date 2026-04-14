@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — قصصي</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<div class="container">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">قصصي</h1>
+      <p class="page-subtitle" id="stories-count">تحميل...</p>
+    </div>
+    <a href="/wizard.html" class="btn btn-primary btn-lg">
+      ✦ قصة جديدة
+    </a>
+  </div>
+
+  <!-- حالة الخطأ -->
+  <div id="error-msg" class="alert alert-error" style="display:none"></div>
+
+  <!-- شبكة القصص -->
+  <div id="stories-grid" class="grid grid-2">
+    <!-- تحميل -->
+    <div class="card" style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3)">
+      <div class="spinner" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px"></div>
+      <p>جارٍ تحميل قصصك...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- مربع حذف قصة -->
+<div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center">
+  <div class="card" style="max-width:380px;width:90%">
+    <h3 style="font-family:'Amiri',serif;margin-bottom:.8rem;color:var(--red)">حذف القصة</h3>
+    <p style="color:var(--text2);margin-bottom:1.5rem;font-size:.9rem">
+      هل أنت متأكد من حذف "<strong id="delete-story-title"></strong>"؟ سيتم حذف جميع فصولها أيضاً. هذا لا يمكن التراجع عنه.
+    </p>
+    <div style="display:flex;gap:.8rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">إلغاء</button>
+      <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">حذف نهائياً</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+let deleteTargetId = null;
+
+document.getElementById('navbar-container').innerHTML = buildNavbar('قصصي');
+
+async function loadStories() {
+  const res = await API.get('/api/stories');
+  const grid = document.getElementById('stories-grid');
+  const countEl = document.getElementById('stories-count');
+
+  if (!res || !res.ok) {
+    document.getElementById('error-msg').textContent = res?.error || 'تعذّر تحميل القصص';
+    document.getElementById('error-msg').style.display = 'flex';
+    grid.innerHTML = '';
+    return;
+  }
+
+  const stories = res.stories || [];
+  countEl.textContent = stories.length === 0 ? 'لا توجد قصص بعد'
+    : `${stories.length} قصة`;
+
+  if (stories.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1">
+        <div class="empty-state">
+          <div class="empty-icon">📖</div>
+          <h3 style="font-family:'Amiri',serif;margin-bottom:.5rem">لا توجد قصص بعد</h3>
+          <p>ابدأ قصتك الأولى بالضغط على "قصة جديدة"</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = stories.map(s => `
+    <div class="story-card fade-in" onclick="location.href='/story.html?id=${s.id}'">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem">
+        <div class="story-card-title">${s.title}</div>
+        <button class="btn btn-danger btn-sm" style="flex-shrink:0;font-size:.75rem"
+          onclick="event.stopPropagation();openDeleteModal('${s.id}','${s.title.replace(/'/g,"\\'")}')">
+          حذف
+        </button>
+      </div>
+      <div class="story-card-meta">
+        <span class="badge badge-genre">${GENRE_ICONS[s.genre] || '📚'} ${s.genre}</span>
+        <span class="badge badge-active">نشطة</span>
+      </div>
+      <div class="story-card-stats">
+        <span>📄 ${s.chapter_count} فصل</span>
+        <span>🕐 ${timeAgo(s.created_at)}</span>
+      </div>
+      <div style="margin-top:.3rem">
+        <a href="/generate.html?id=${s.id}" class="btn btn-secondary btn-sm"
+          onclick="event.stopPropagation()">
+          ✦ ولّد فصل
+        </a>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openDeleteModal(id, title) {
+  deleteTargetId = id;
+  document.getElementById('delete-story-title').textContent = title;
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  deleteTargetId = null;
+  document.getElementById('delete-modal').style.display = 'none';
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  const btn = document.getElementById('confirm-delete-btn');
+  btn.disabled = true; btn.textContent = 'جارٍ الحذف...';
+  const res = await API.del(`/api/stories/${deleteTargetId}`);
+  if (res?.ok) {
+    toast('تم حذف القصة', 'success');
+    closeDeleteModal();
+    loadStories();
+  } else {
+    toast(res?.error || 'فشل الحذف', 'error');
+    btn.disabled = false; btn.textContent = 'حذف نهائياً';
+  }
+}
+
+loadStories();
+</script>
+</body>
+</html>
