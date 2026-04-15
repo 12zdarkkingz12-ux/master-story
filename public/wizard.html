@@ -131,26 +131,16 @@
         <input type="text" id="title" placeholder="مثال: ظل الفجر، أو الملك المنسي..." maxlength="200">
       </div>
 
-      <div class="input-row">
-        <div class="form-group">
-          <label>النوع الأدبي *</label>
-          <select id="genre">
-            <option value="">— اختر النوع —</option>
-            <option value="فانتازيا">🌙 فانتازيا</option>
-            <option value="خيال_علمي">🚀 خيال علمي</option>
-            <option value="تشويق_غموض">🔍 تشويق وغموض</option>
-            <option value="رومانسي">🌹 رومانسي</option>
-            <option value="رعب">👁 رعب</option>
-            <option value="مغامرة">⚔ مغامرة</option>
-            <option value="تاريخي">📜 تاريخي</option>
-            <option value="واقعي">🏙 واقعي</option>
-            <option value="بوليسي">🎭 بوليسي</option>
-            <option value="إثارة_حرب">🔥 إثارة وحرب</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>الأسلوب والنبرة</label>
-          <input type="text" id="style" placeholder="مثال: شعري، مباشر، كلاسيكي...">
+      <div class="form-group">
+        <label>الأسلوب والنبرة</label>
+        <input type="text" id="style" placeholder="مثال: شعري، مباشر، كلاسيكي...">
+      </div>
+
+      <div class="form-group">
+        <label>التصنيفات * <span style="color:var(--text3);font-size:.8rem;font-weight:400">— اختر واحداً أو أكثر</span></label>
+        <div class="genre-picker" id="genre-picker"></div>
+        <div class="genre-preview-bar" id="genre-preview">
+          <span style="color:var(--text3);font-size:.82rem">لم تختر تصنيفاً بعد</span>
         </div>
       </div>
 
@@ -393,11 +383,11 @@ function gotoStep(n) {
 }
 
 function goToStep1() {
-  const title = document.getElementById('title').value.trim();
-  const genre = document.getElementById('genre').value;
-  const err   = document.getElementById('step0-error');
-  if (!title) { err.textContent = 'أدخل عنوان القصة'; err.style.display='flex'; return; }
-  if (!genre) { err.textContent = 'اختر النوع الأدبي'; err.style.display='flex'; return; }
+  const title  = document.getElementById('title').value.trim();
+  const genres = getSelectedGenres();
+  const err    = document.getElementById('step0-error');
+  if (!title)         { err.textContent = 'أدخل عنوان القصة';       err.style.display='flex'; return; }
+  if (!genres.length) { err.textContent = 'اختر تصنيفاً واحداً على الأقل'; err.style.display='flex'; return; }
   err.style.display = 'none';
   gotoStep(1);
 }
@@ -433,7 +423,7 @@ async function generateWorld() {
 
   const res = await API.post('/api/generate/world', {
     title:    document.getElementById('title').value.trim(),
-    genre:    document.getElementById('genre').value,
+    genre:    getSelectedGenres(),
     style:    document.getElementById('style').value.trim(),
     darkness: document.getElementById('darkness').value,
     model:    document.getElementById('model-world').value || undefined,
@@ -462,7 +452,7 @@ async function generateCharacters() {
 
   const res = await API.post('/api/generate/characters', {
     title:      document.getElementById('title').value.trim(),
-    genre:      document.getElementById('genre').value,
+    genre:      getSelectedGenres(),
     world_data: { raw: document.getElementById('world-text').value.trim() },
     charCount:  selectedCharCount,
     model:      document.getElementById('model-chars').value || undefined,
@@ -491,7 +481,7 @@ async function generateTimeline() {
 
   const res = await API.post('/api/generate/timeline', {
     title:      document.getElementById('title').value.trim(),
-    genre:      document.getElementById('genre').value,
+    genre:      getSelectedGenres(),
     world_data: { raw: document.getElementById('world-text').value.trim() },
     characters: document.getElementById('chars-text').value.trim(),
     model:      document.getElementById('model-timeline').value || undefined,
@@ -511,7 +501,7 @@ async function generateTimeline() {
 // ── بناء الملخص النهائي ───────────────────────────────────────
 function buildSummary() {
   const title    = document.getElementById('title').value.trim();
-  const genre    = document.getElementById('genre').value;
+  const genres   = getSelectedGenres();
   const style    = document.getElementById('style').value.trim();
   const darkness = document.getElementById('darkness').value;
   const world    = document.getElementById('world-text').value.trim();
@@ -524,8 +514,8 @@ function buildSummary() {
       <span class="sr-value" style="font-family:'Amiri',serif;font-size:1.1rem">${title}</span>
     </div>
     <div class="summary-row">
-      <span class="sr-label">النوع</span>
-      <span class="sr-value">${GENRE_ICONS[genre] || ''} ${genre}</span>
+      <span class="sr-label">التصنيفات</span>
+      <span class="sr-value">${genres.map(g => `${GENRE_ICONS[g]||'📚'} ${g.replace(/_/g,' ')}`).join(' · ')}</span>
     </div>
     ${style ? `<div class="summary-row"><span class="sr-label">الأسلوب</span><span class="sr-value">${style}</span></div>` : ''}
     <div class="summary-row">
@@ -556,7 +546,7 @@ async function saveStory() {
 
   const res = await API.post('/api/stories', {
     title:      document.getElementById('title').value.trim(),
-    genre:      document.getElementById('genre').value,
+    genre:      JSON.stringify(getSelectedGenres()),
     style:      document.getElementById('style').value.trim(),
     darkness:   parseInt(document.getElementById('darkness').value),
     world_data: { raw: document.getElementById('world-text').value.trim() },
@@ -577,6 +567,11 @@ async function saveStory() {
 }
 
 loadModels();
+buildGenrePicker('genre-picker');
+// افتح أول مجموعة تلقائياً
+document.querySelectorAll('.genre-group-body').forEach((b,i) => {
+  if (i > 0) b.style.display = 'none';
+});
 </script>
 </body>
 </html>

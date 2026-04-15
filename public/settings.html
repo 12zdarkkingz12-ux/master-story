@@ -128,28 +128,36 @@
           <span class="card-title">🤖 النموذج الافتراضي</span>
         </div>
 
-        <p style="font-size:.85rem;color:var(--text2);margin-bottom:1rem">
-          هذا النموذج يُستخدم عند تشغيل التوليد بدون تحديد نموذج معين.
-          يمكنك تغييره لكل عملية توليد على حدة أيضاً.
+        <p style="font-size:.85rem;color:var(--text2);margin-bottom:1.2rem">
+          اضغط على اسم النموذج لتعيينه • زر <strong style="color:var(--accent)">🔌</strong>
+          لاختبار الاتصال مباشرة
         </p>
 
-        <div id="models-list">
-          <div class="spinner" style="margin:0 auto;display:block;margin-bottom:1rem"></div>
-        </div>
+        <!-- النماذج المضمّنة -->
+        <div class="model-browse-grid" id="models-list"></div>
 
-        <div class="form-group" style="margin-top:1rem">
-          <label>أو أدخل اسم نموذج مخصص</label>
+        <!-- فاصل -->
+        <div class="divider" style="margin:1rem 0"></div>
+
+        <!-- نموذج مخصص -->
+        <div class="form-group">
+          <label>نموذج مخصص</label>
           <div style="display:flex;gap:.6rem">
             <input type="text" id="custom-model-input"
-              placeholder="مثال: anthropic/claude-haiku-4-5-20251001:free">
-            <button class="btn btn-ghost btn-sm" onclick="setCustomModel()">تعيين</button>
+              placeholder="مثال: anthropic/claude-opus-4-6">
+            <button class="btn btn-ghost btn-sm" onclick="addCustomModel()">＋ إضافة</button>
           </div>
+          <p style="font-size:.78rem;color:var(--text3);margin-top:.35rem">
+            أي نموذج متاح على
+            <a href="https://openrouter.ai/models" target="_blank">openrouter.ai/models</a>
+          </p>
         </div>
 
         <div id="model-save-msg" class="alert alert-success" style="display:none;margin-top:.7rem"></div>
 
-        <div style="margin-top:1rem">
+        <div style="margin-top:1rem;display:flex;gap:.7rem;align-items:center">
           <button class="btn btn-primary" onclick="saveModel()">💾 حفظ النموذج</button>
+          <span id="selected-model-label" style="font-size:.82rem;color:var(--text3)"></span>
         </div>
       </div>
 
@@ -212,6 +220,7 @@
 <script>
 let currentModel = '';
 let allModels    = [];
+const modelTestState = {}; // id -> 'testing' | 'ok' | 'fail'
 
 document.getElementById('navbar-container').innerHTML = buildNavbar('الإعدادات');
 
@@ -222,7 +231,6 @@ async function init() {
   const cfg = res.config;
   allModels  = res.freeModels || [];
 
-  // عرض معاينة المفتاح
   if (cfg.openrouter_key_preview) {
     document.getElementById('current-key-preview').textContent =
       'المفتاح الحالي: ' + cfg.openrouter_key_preview;
@@ -230,53 +238,94 @@ async function init() {
 
   currentModel = cfg.openrouter_model || '';
   buildModelsList();
+  updateSelectedLabel();
 }
 
 function buildModelsList() {
   const list = document.getElementById('models-list');
-  list.innerHTML = allModels.map(m => `
-    <div class="model-option ${currentModel === m.id ? 'selected' : ''}"
-      onclick="selectModel('${m.id}', this)">
-      <input type="radio" name="model" value="${m.id}"
-        ${currentModel === m.id ? 'checked' : ''} onchange="selectModel('${m.id}', this.closest('.model-option'))">
-      <div>
-        <div style="font-size:.9rem;font-weight:500;color:var(--text)">${m.name}</div>
-        <div style="font-size:.78rem;color:var(--text3);font-family:monospace">${m.id}</div>
+  list.innerHTML = allModels.map(m => buildModelRow(m.id, m.name)).join('');
+}
+
+function buildModelRow(id, name, isCustom = false) {
+  const isSelected = currentModel === id;
+  const state      = modelTestState[id] || '';
+  return `
+    <div class="model-browse-item ${isSelected ? 'model-browse-active' : ''}" id="mrow-${CSS.escape(id)}">
+      <div class="model-browse-info" onclick="selectModel('${id}')" style="cursor:pointer">
+        <div class="model-browse-name">${name}${isCustom ? ' <span style="color:var(--text3);font-size:.75rem">(مخصص)</span>' : ''}</div>
+        <div class="model-browse-id">${id}</div>
       </div>
-    </div>
-  `).join('');
-}
-
-function selectModel(id, el) {
-  currentModel = id;
-  document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
-  el.querySelector('input[type="radio"]').checked = true;
-}
-
-function setCustomModel() {
-  const val = document.getElementById('custom-model-input').value.trim();
-  if (!val) return;
-  currentModel = val;
-  // إضافة للقائمة مؤقتاً
-  const list = document.getElementById('models-list');
-  document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
-  const div = document.createElement('div');
-  div.className = 'model-option selected';
-  div.innerHTML = `
-    <input type="radio" name="model" value="${val}" checked>
-    <div>
-      <div style="font-size:.9rem;font-weight:500;color:var(--text)">${val}</div>
-      <div style="font-size:.78rem;color:var(--text3);font-family:monospace">${val}</div>
+      <div class="model-browse-actions">
+        <div class="model-status-dot ${state}" id="dot-${CSS.escape(id)}" title="${state === 'ok' ? 'متصل' : state === 'fail' ? 'فشل' : ''}"></div>
+        <button class="btn btn-ghost btn-sm" onclick="testSingleModel('${id}')" title="اختبار هذا النموذج">🔌</button>
+        <button class="btn btn-primary btn-sm" onclick="selectAndSave('${id}')" title="تعيين وحفظ">✓</button>
+      </div>
     </div>`;
-  list.prepend(div);
+}
+
+function selectModel(id) {
+  currentModel = id;
+  document.querySelectorAll('.model-browse-item').forEach(el => el.classList.remove('model-browse-active'));
+  const row = document.getElementById(`mrow-${CSS.escape(id)}`);
+  if (row) row.classList.add('model-browse-active');
+  updateSelectedLabel();
+}
+
+function updateSelectedLabel() {
+  const el = document.getElementById('selected-model-label');
+  if (!el) return;
+  if (currentModel) {
+    const m = allModels.find(x => x.id === currentModel);
+    el.textContent = 'المحدد: ' + (m?.name || currentModel);
+  } else {
+    el.textContent = 'لم يُحدد نموذج بعد';
+  }
+}
+
+async function selectAndSave(id) {
+  selectModel(id);
+  await saveModel();
+}
+
+async function testSingleModel(id) {
+  modelTestState[id] = 'testing';
+  const dot = document.getElementById(`dot-${CSS.escape(id)}`);
+  if (dot) { dot.className = 'model-status-dot testing'; }
+
+  const key = document.getElementById('api-key').value.trim() || undefined;
+  const res = await API.post('/api/settings/test', { api_key: key, model: id });
+
+  modelTestState[id] = res?.ok ? 'ok' : 'fail';
+  if (dot) {
+    dot.className = `model-status-dot ${modelTestState[id]}`;
+    dot.title = res?.ok ? '✓ متصل' : '✕ ' + (res?.error || 'فشل');
+  }
+  toast(res?.ok ? `✓ ${id.split('/').pop()} — متصل` : `✕ فشل الاتصال`, res?.ok ? 'success' : 'error');
+}
+
+function addCustomModel() {
+  const val = document.getElementById('custom-model-input').value.trim();
+  if (!val) { toast('أدخل اسم النموذج', 'warn'); return; }
+  if (allModels.find(m => m.id === val)) {
+    selectModel(val); toast('النموذج موجود بالفعل', 'info'); return;
+  }
+  const list = document.getElementById('models-list');
+  const div  = document.createElement('div');
+  div.outerHTML; // placeholder
+  list.insertAdjacentHTML('afterbegin', buildModelRow(val, val, true));
+  allModels.unshift({ id: val, name: val });
+  selectModel(val);
+  document.getElementById('custom-model-input').value = '';
+  toast('تمت إضافة النموذج', 'success');
 }
 
 async function saveModel() {
+  if (!currentModel) { toast('اختر نموذجاً أولاً', 'warn'); return; }
   const res = await API.post('/api/settings', { openrouter_model: currentModel });
   const msg = document.getElementById('model-save-msg');
   if (res?.ok) {
-    msg.textContent = 'تم حفظ النموذج: ' + currentModel;
+    const m = allModels.find(x => x.id === currentModel);
+    msg.textContent = 'تم الحفظ: ' + (m?.name || currentModel);
     msg.style.display = 'flex';
     toast('تم حفظ النموذج', 'success');
     setTimeout(() => msg.style.display = 'none', 3000);
@@ -322,7 +371,6 @@ async function testApiKey() {
   const err  = document.getElementById('api-error');
   const succ = document.getElementById('api-success');
   err.style.display = succ.style.display = 'none';
-
   toast('جارٍ اختبار الاتصال...', 'info');
 
   const res = await API.post('/api/settings/test', {
@@ -365,9 +413,7 @@ async function loadStats() {
         <div class="stat-label">متوسط وقت الرد</div>
       </div>
     </div>
-    <p style="font-size:.82rem;color:var(--text3)">
-      آخر ${s.totalRequests} طلب محلل
-    </p>
+    <p style="font-size:.82rem;color:var(--text3)">آخر ${s.totalRequests} طلب محلل</p>
   `;
 }
 
@@ -376,7 +422,6 @@ function showPanel(name) {
   document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`panel-${name}`).classList.add('active');
   event.currentTarget.classList.add('active');
-
   if (name === 'stats') loadStats();
 }
 
