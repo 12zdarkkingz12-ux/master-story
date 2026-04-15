@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — توليد فصل</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.generate-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.sidebar-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: sticky; top: 80px;
+}
+
+.sidebar-section {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section:last-child { border-bottom: none; }
+
+.sidebar-title {
+  font-size: .78rem; font-weight: 500;
+  color: var(--text3); text-transform: uppercase;
+  letter-spacing: .08em; margin-bottom: .7rem;
+}
+
+.chapter-list-mini { display: flex; flex-direction: column; gap: .4rem; }
+
+.chapter-mini-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .45rem .7rem;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background var(--trans);
+}
+
+.chapter-mini-item:hover { background: var(--card2); }
+.chapter-mini-item.approved { color: var(--green); }
+.chapter-mini-item.draft    { color: var(--text3); }
+
+.main-gen-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.gen-header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .8rem;
+}
+
+.gen-body { padding: 1.5rem; }
+
+.gen-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .8rem;
+}
+
+.word-count-badge {
+  font-size: .8rem; color: var(--text3);
+  display: flex; align-items: center; gap: .3rem;
+}
+
+.status-bar {
+  padding: .6rem 1.5rem;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  font-size: .82rem; color: var(--text2);
+  display: flex; align-items: center; gap: .5rem;
+  min-height: 36px;
+}
+
+.approve-section {
+  display: none;
+  padding: 1.2rem 1.5rem;
+  background: var(--green-dim);
+  border-top: 1px solid rgba(91,173,127,.2);
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.approve-section.visible { display: flex; }
+
+@media (max-width: 768px) {
+  .generate-layout { grid-template-columns: 1fr; }
+  .sidebar-card { position: static; }
+}
+</style>
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<div class="container">
+
+  <div class="page-header" style="margin-bottom:1.2rem">
+    <div>
+      <h1 class="page-title" id="story-title-header">تحميل...</h1>
+      <p class="page-subtitle" id="story-genre-header"></p>
+    </div>
+    <div style="display:flex;gap:.6rem">
+      <a href="/dashboard.html" class="btn btn-ghost btn-sm">← لوحة القصص</a>
+      <a id="library-link" href="/library.html" class="btn btn-ghost btn-sm">📖 المكتبة</a>
+    </div>
+  </div>
+
+  <div class="generate-layout">
+
+    <!-- ── الشريط الجانبي ── -->
+    <div class="sidebar-card" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">معلومات القصة</div>
+        <div id="story-info" style="font-size:.82rem;color:var(--text2);display:flex;flex-direction:column;gap:.3rem">
+          <div class="spinner" style="margin:0 auto"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">الفصول المعتمدة</div>
+        <div class="chapter-list-mini" id="chapters-mini">
+          <div style="font-size:.82rem;color:var(--text3)">لا توجد فصول بعد</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">الفصل التالي</div>
+        <div id="next-chapter-num" style="font-size:1.5rem;font-family:'Amiri',serif;color:var(--accent)">—</div>
+      </div>
+    </div>
+
+    <!-- ── منطقة التوليد الرئيسية ── -->
+    <div class="main-gen-card">
+      <div class="gen-header">
+        <div>
+          <div style="font-size:.82rem;color:var(--text3);margin-bottom:.2rem">إعدادات التوليد</div>
+          <div style="display:flex;gap:.7rem;align-items:center;flex-wrap:wrap">
+            <div>
+              <label style="font-size:.78rem;display:block;margin-bottom:.2rem">عنوان الفصل (اختياري)</label>
+              <input type="text" id="chapter-title" placeholder="اتركه فارغاً للتوليد التلقائي..."
+                style="width:220px;padding:.35rem .7rem;font-size:.85rem">
+            </div>
+            <div>
+              <label style="font-size:.78rem;display:block;margin-bottom:.2rem">النموذج</label>
+              <select id="gen-model" style="width:auto;padding:.35rem .6rem;font-size:.82rem">
+                <option value="">الافتراضي</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg" id="generate-btn" onclick="startGeneration()">
+          ✦ ولّد الفصل
+        </button>
+      </div>
+
+      <div style="padding:.8rem 1.5rem;border-bottom:1px solid var(--border)">
+        <label style="font-size:.78rem;color:var(--text3);display:block;margin-bottom:.3rem">
+          ملاحظات للكاتب (اختياري) — توجيهات لما يجب أن يحدث في هذا الفصل
+        </label>
+        <textarea id="chapter-notes" rows="2"
+          placeholder="مثال: يكتشف البطل خيانة حليفه القديم، ويواجهه في مشهد درامي..."
+          style="resize:none;font-size:.9rem"></textarea>
+      </div>
+
+      <div class="gen-body">
+        <div class="chapter-stream-area" id="chapter-output">
+          <div style="text-align:center;padding:3rem;color:var(--text3)">
+            <div style="font-size:2.5rem;margin-bottom:.8rem;opacity:.4">📝</div>
+            <p>اضغط "ولّد الفصل" لبدء كتابة فصل جديد</p>
+            <p style="font-size:.82rem;margin-top:.4rem">الفصل سيُحفظ تلقائياً — لك خيار الاعتماد أو الإعادة</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-bar" id="status-bar">
+        <span>جاهز للتوليد</span>
+      </div>
+
+      <div class="approve-section" id="approve-section">
+        <div style="flex:1">
+          <p style="color:var(--green);font-weight:500;margin-bottom:.2rem">✓ تم توليد الفصل</p>
+          <p style="font-size:.82rem;color:var(--text2)">هل تعتمد هذا الفصل وتضيفه للقصة؟</p>
+        </div>
+        <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="discardChapter()">↺ تجاهل وأعِد</button>
+          <button class="btn btn-success" id="approve-btn" onclick="approveChapter()">
+            ✓ اعتماد الفصل
+          </button>
+        </div>
+      </div>
+
+      <div class="gen-footer">
+        <div class="word-count-badge" id="word-count-badge">
+          <span>📄</span><span id="word-count">0</span><span>كلمة</span>
+        </div>
+        <div style="font-size:.8rem;color:var(--text3)" id="model-used-label"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/api.js"></script>
+<script>
+let storyId        = null;
+let story          = null;
+let draftChapterId = null;
+let isGenerating   = false;
+
+document.getElementById('navbar-container').innerHTML = buildNavbar('');
+
+async function init() {
+  storyId = getParam('id');
+  if (!storyId) { location.href = '/dashboard.html'; return; }
+
+  document.getElementById('library-link').href = `/library.html?id=${storyId}`;
+
+  await Promise.all([loadStory(), loadModels()]);
+}
+
+async function loadStory() {
+  const [storyRes, chaptersRes] = await Promise.all([
+    API.get(`/api/stories/${storyId}`),
+    API.get(`/api/stories/${storyId}/chapters`),
+  ]);
+
+  if (!storyRes?.ok) { location.href = '/dashboard.html'; return; }
+  story = storyRes.story;
+
+  document.getElementById('story-title-header').textContent = story.title;
+  document.getElementById('story-genre-header').textContent =
+    (GENRE_ICONS[story.genre] || '') + ' ' + story.genre;
+  document.title = `Master Story — ${story.title}`;
+
+  // معلومات القصة في الجانب
+  document.getElementById('story-info').innerHTML = `
+    <div><span style="color:var(--text3)">النوع:</span> ${story.genre}</div>
+    <div><span style="color:var(--text3)">الظلام:</span> ${story.darkness}/10</div>
+    <div><span style="color:var(--text3)">الفصول:</span> ${story.chapter_count}</div>
+  `;
+
+  // قائمة الفصول
+  const chapters = chaptersRes?.chapters || [];
+  const approved = chapters.filter(c => c.status === 'approved');
+  const nextNum  = approved.length > 0 ? approved[approved.length - 1].chapter_num + 1 : 1;
+
+  document.getElementById('next-chapter-num').textContent = `الفصل ${toArabicNum(nextNum)}`;
+
+  if (approved.length > 0) {
+    document.getElementById('chapters-mini').innerHTML = approved.map(c => `
+      <div class="chapter-mini-item approved"
+        onclick="viewChapter('${c.id}')">
+        <span>الفصل ${toArabicNum(c.chapter_num)}</span>
+        <span style="font-size:.75rem;opacity:.6">${c.word_count} كلمة</span>
+      </div>
+    `).join('');
+  }
+}
+
+async function loadModels() {
+  const res = await API.get('/api/settings/models');
+  if (!res?.ok) return;
+  const sel = document.getElementById('gen-model');
+  res.models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  const custom = document.createElement('option');
+  custom.value = '__custom__'; custom.textContent = '✏ نموذج مخصص...';
+  sel.appendChild(custom);
+  sel.addEventListener('change', () => {
+    if (sel.value === '__custom__') {
+      const n = prompt('أدخل اسم النموذج:');
+      if (n) { const o = document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); sel.value=n; }
+      else sel.value = '';
+    }
+  });
+}
+
+function toArabicNum(n) {
+  return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+}
+
+// ── التوليد ───────────────────────────────────────────────────
+async function startGeneration() {
+  if (isGenerating) return;
+
+  const btn    = document.getElementById('generate-btn');
+  const output = document.getElementById('chapter-output');
+  const status = document.getElementById('status-bar');
+  const approve = document.getElementById('approve-section');
+
+  isGenerating = true;
+  draftChapterId = null;
+  btn.disabled = true; btn.textContent = '⏳ جارٍ التوليد...';
+  output.textContent = '';
+  output.classList.add('streaming');
+  approve.classList.remove('visible');
+  document.getElementById('word-count').textContent = '0';
+  document.getElementById('model-used-label').textContent = '';
+
+  const model = document.getElementById('gen-model').value;
+
+  try {
+    const response = await fetch('/api/generate/chapter', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storyId,
+        chapterNotes: document.getElementById('chapter-notes').value.trim(),
+        chapterTitle: document.getElementById('chapter-title').value.trim(),
+        model:        model || undefined,
+      }),
+    });
+
+    if (!response.ok || response.status === 401) {
+      if (response.status === 401) location.href = '/';
+      throw new Error('فشل الاتصال بالخادم');
+    }
+
+    const reader  = response.body.getReader();
+    const decoder = new TextDecoder();
+    let   buffer  = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const parsed = JSON.parse(line.slice(6));
+          handleSSEEvent(parsed, output, status);
+        } catch (_) {}
+      }
+    }
+  } catch (err) {
+    status.innerHTML = `<span style="color:var(--red)">✕ ${err.message}</span>`;
+    toast(err.message, 'error');
+  }
+
+  isGenerating = false;
+  btn.disabled = false; btn.textContent = '✦ ولّد الفصل';
+  output.classList.remove('streaming');
+}
+
+function handleSSEEvent(data, output, status) {
+  // الأحداث تأتي ملفوفة في { event, data } أو مجردة
+  if (data.text !== undefined) {
+    // chunk
+    output.textContent += data.text;
+    const wc = wordCount(output.textContent);
+    document.getElementById('word-count').textContent = wc;
+    output.scrollTop = output.scrollHeight;
+    return;
+  }
+
+  if (data.message) {
+    status.innerHTML = `<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> ${data.message}`;
+    return;
+  }
+
+  if (data.chapterId) {
+    // done
+    draftChapterId = data.chapterId;
+    document.getElementById('approve-section').classList.add('visible');
+    document.getElementById('model-used-label').textContent = `النموذج: ${data.model || ''}`;
+    status.innerHTML = `✓ تم التوليد — ${data.wordCount} كلمة`;
+    loadStory();
+    return;
+  }
+
+  if (data.error || data.message?.includes('خطأ')) {
+    status.innerHTML = `<span style="color:var(--red)">✕ ${data.message || data.error}</span>`;
+    toast(data.message || data.error, 'error');
+  }
+}
+
+// ── اعتماد الفصل ─────────────────────────────────────────────
+async function approveChapter() {
+  if (!draftChapterId) return;
+  const btn = document.getElementById('approve-btn');
+  btn.disabled = true; btn.textContent = '⏳ جارٍ الاعتماد...';
+
+  // اعتماد
+  const approveRes = await API.post(`/api/chapters/${draftChapterId}/approve`, {});
+  if (!approveRes?.ok) {
+    toast(approveRes?.error || 'فشل الاعتماد', 'error');
+    btn.disabled = false; btn.textContent = '✓ اعتماد الفصل';
+    return;
+  }
+
+  // توليد ملخص تلقائي
+  API.post('/api/generate/summary', {
+    chapterId: draftChapterId,
+    model: document.getElementById('gen-model').value || undefined,
+  }).catch(() => {});
+
+  toast('تم اعتماد الفصل وحفظه ✓', 'success');
+  document.getElementById('approve-section').classList.remove('visible');
+  draftChapterId = null;
+  btn.disabled = false; btn.textContent = '✓ اعتماد الفصل';
+
+  // تصفير للفصل التالي
+  document.getElementById('chapter-title').value = '';
+  document.getElementById('chapter-notes').value = '';
+  document.getElementById('chapter-output').innerHTML = `
+    <div style="text-align:center;padding:3rem;color:var(--text3)">
+      <div style="font-size:2rem;margin-bottom:.8rem;color:var(--green);opacity:.7">✓</div>
+      <p>تم اعتماد الفصل بنجاح!</p>
+      <p style="font-size:.82rem;margin-top:.4rem">اضغط "ولّد الفصل" للمتابعة</p>
+    </div>`;
+  document.getElementById('word-count').textContent = '0';
+  document.getElementById('status-bar').textContent = 'جاهز للفصل التالي';
+
+  await loadStory();
+}
+
+function discardChapter() {
+  document.getElementById('approve-section').classList.remove('visible');
+  draftChapterId = null;
+  document.getElementById('chapter-output').innerHTML = `
+    <div style="text-align:center;padding:3rem;color:var(--text3)">
+      <p>تم تجاهل الفصل. اضغط "ولّد الفصل" للمحاولة مجدداً.</p>
+    </div>`;
+  document.getElementById('status-bar').textContent = 'جاهز';
+}
+
+function viewChapter(id) {
+  location.href = `/library.html?id=${storyId}&chapter=${id}`;
+}
+
+init();
+</script>
+</body>
+</html>

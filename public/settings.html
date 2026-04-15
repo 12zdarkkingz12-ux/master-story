@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Story — الإعدادات</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.settings-nav {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: sticky; top: 80px;
+}
+
+.settings-nav-item {
+  padding: .75rem 1.2rem;
+  display: flex; align-items: center; gap: .6rem;
+  cursor: pointer; font-size: .9rem;
+  color: var(--text2);
+  transition: all var(--trans);
+  border-bottom: 1px solid var(--border);
+}
+.settings-nav-item:last-child { border-bottom: none; }
+.settings-nav-item:hover { background: var(--card2); color: var(--text); }
+.settings-nav-item.active { background: var(--accent-dim); color: var(--accent); }
+
+.settings-panel { display: none; }
+.settings-panel.active { display: block; animation: fadeIn .3s ease; }
+
+.model-option {
+  display: flex; align-items: center; gap: .8rem;
+  padding: .75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer; margin-bottom: .5rem;
+  transition: all var(--trans);
+}
+.model-option:hover { border-color: var(--border2); background: var(--card2); }
+.model-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+.model-option input[type="radio"] { accent-color: var(--accent); }
+
+.key-input-group {
+  display: flex; gap: .6rem;
+}
+.key-input-group input { flex: 1; font-family: monospace; font-size: .85rem; }
+
+@media (max-width: 768px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; display: flex; overflow-x: auto; }
+  .settings-nav-item { white-space: nowrap; border-bottom: none; border-left: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">الإعدادات</h1>
+      <p class="page-subtitle">إدارة الذكاء الاصطناعي والإعدادات العامة</p>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+
+    <!-- شريط التنقل الجانبي -->
+    <div class="settings-nav">
+      <div class="settings-nav-item active" onclick="showPanel('api')">
+        <span>🔑</span> الـ API
+      </div>
+      <div class="settings-nav-item" onclick="showPanel('models')">
+        <span>🤖</span> النموذج
+      </div>
+      <div class="settings-nav-item" onclick="showPanel('stats')">
+        <span>📊</span> الإحصائيات
+      </div>
+      <div class="settings-nav-item" onclick="showPanel('about')">
+        <span>ℹ</span> عن التطبيق
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1.2rem">
+
+      <!-- ── لوحة: API ── -->
+      <div class="settings-panel active card" id="panel-api">
+        <div class="card-header">
+          <span class="card-title">🔑 مفتاح OpenRouter</span>
+          <a href="https://openrouter.ai/keys" target="_blank"
+            class="btn btn-ghost btn-sm">الحصول على مفتاح ↗</a>
+        </div>
+
+        <div class="alert alert-info" style="margin-bottom:1rem;font-size:.85rem">
+          OpenRouter يوفر وصولاً لمئات النماذج بمفتاح واحد. النماذج المنتهية بـ <code style="background:var(--bg2);padding:.1rem .3rem;border-radius:4px">:free</code> مجانية تماماً.
+        </div>
+
+        <div class="form-group">
+          <label>مفتاح API</label>
+          <div class="key-input-group">
+            <input type="password" id="api-key" placeholder="sk-or-v1-...">
+            <button class="btn btn-ghost btn-sm" onclick="toggleKeyVisibility()" id="toggle-key-btn">👁</button>
+          </div>
+          <p style="font-size:.8rem;color:var(--text3);margin-top:.4rem" id="current-key-preview"></p>
+        </div>
+
+        <div id="api-error"   class="alert alert-error"   style="display:none"></div>
+        <div id="api-success" class="alert alert-success" style="display:none"></div>
+
+        <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.5rem">
+          <button class="btn btn-primary" onclick="saveApiKey()">💾 حفظ المفتاح</button>
+          <button class="btn btn-ghost"   onclick="testApiKey()">🔌 اختبار الاتصال</button>
+        </div>
+      </div>
+
+      <!-- ── لوحة: النموذج ── -->
+      <div class="settings-panel card" id="panel-models">
+        <div class="card-header">
+          <span class="card-title">🤖 النموذج الافتراضي</span>
+        </div>
+
+        <p style="font-size:.85rem;color:var(--text2);margin-bottom:1rem">
+          هذا النموذج يُستخدم عند تشغيل التوليد بدون تحديد نموذج معين.
+          يمكنك تغييره لكل عملية توليد على حدة أيضاً.
+        </p>
+
+        <div id="models-list">
+          <div class="spinner" style="margin:0 auto;display:block;margin-bottom:1rem"></div>
+        </div>
+
+        <div class="form-group" style="margin-top:1rem">
+          <label>أو أدخل اسم نموذج مخصص</label>
+          <div style="display:flex;gap:.6rem">
+            <input type="text" id="custom-model-input"
+              placeholder="مثال: anthropic/claude-haiku-4-5-20251001:free">
+            <button class="btn btn-ghost btn-sm" onclick="setCustomModel()">تعيين</button>
+          </div>
+        </div>
+
+        <div id="model-save-msg" class="alert alert-success" style="display:none;margin-top:.7rem"></div>
+
+        <div style="margin-top:1rem">
+          <button class="btn btn-primary" onclick="saveModel()">💾 حفظ النموذج</button>
+        </div>
+      </div>
+
+      <!-- ── لوحة: الإحصائيات ── -->
+      <div class="settings-panel card" id="panel-stats">
+        <div class="card-header">
+          <span class="card-title">📊 الإحصائيات</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadStats()">↺ تحديث</button>
+        </div>
+
+        <div id="stats-content">
+          <div class="spinner" style="display:block;margin:2rem auto"></div>
+        </div>
+      </div>
+
+      <!-- ── لوحة: عن التطبيق ── -->
+      <div class="settings-panel card" id="panel-about">
+        <div class="card-header">
+          <span class="card-title">🌙 Master Story</span>
+        </div>
+
+        <div style="text-align:center;padding:1.5rem 1rem">
+          <div style="font-size:4rem;margin-bottom:.8rem">🌙</div>
+          <h2 style="font-family:'Amiri',serif;font-size:1.8rem;color:var(--accent);margin-bottom:.5rem">
+            Master Story
+          </h2>
+          <p style="color:var(--text2);font-size:.9rem;margin-bottom:1.5rem">
+            منصة كتابة الروايات بالذكاء الاصطناعي<br>
+            الإصدار 2.0.0
+          </p>
+
+          <div style="text-align:right;display:flex;flex-direction:column;gap:.7rem;max-width:400px;margin:0 auto">
+            <div class="info-row">
+              <span class="info-label">المنصة</span>
+              <span>Node.js + Express على Render</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">قاعدة البيانات</span>
+              <span>Supabase</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">الذكاء الاصطناعي</span>
+              <span>OpenRouter (نماذج متعددة)</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">الواجهة</span>
+              <span>عربي RTL · Tajawal + Amiri</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/api.js"></script>
+<script>
+let currentModel = '';
+let allModels    = [];
+
+document.getElementById('navbar-container').innerHTML = buildNavbar('الإعدادات');
+
+async function init() {
+  const res = await API.get('/api/settings');
+  if (!res?.ok) return;
+
+  const cfg = res.config;
+  allModels  = res.freeModels || [];
+
+  // عرض معاينة المفتاح
+  if (cfg.openrouter_key_preview) {
+    document.getElementById('current-key-preview').textContent =
+      'المفتاح الحالي: ' + cfg.openrouter_key_preview;
+  }
+
+  currentModel = cfg.openrouter_model || '';
+  buildModelsList();
+}
+
+function buildModelsList() {
+  const list = document.getElementById('models-list');
+  list.innerHTML = allModels.map(m => `
+    <div class="model-option ${currentModel === m.id ? 'selected' : ''}"
+      onclick="selectModel('${m.id}', this)">
+      <input type="radio" name="model" value="${m.id}"
+        ${currentModel === m.id ? 'checked' : ''} onchange="selectModel('${m.id}', this.closest('.model-option'))">
+      <div>
+        <div style="font-size:.9rem;font-weight:500;color:var(--text)">${m.name}</div>
+        <div style="font-size:.78rem;color:var(--text3);font-family:monospace">${m.id}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectModel(id, el) {
+  currentModel = id;
+  document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type="radio"]').checked = true;
+}
+
+function setCustomModel() {
+  const val = document.getElementById('custom-model-input').value.trim();
+  if (!val) return;
+  currentModel = val;
+  // إضافة للقائمة مؤقتاً
+  const list = document.getElementById('models-list');
+  document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+  const div = document.createElement('div');
+  div.className = 'model-option selected';
+  div.innerHTML = `
+    <input type="radio" name="model" value="${val}" checked>
+    <div>
+      <div style="font-size:.9rem;font-weight:500;color:var(--text)">${val}</div>
+      <div style="font-size:.78rem;color:var(--text3);font-family:monospace">${val}</div>
+    </div>`;
+  list.prepend(div);
+}
+
+async function saveModel() {
+  const res = await API.post('/api/settings', { openrouter_model: currentModel });
+  const msg = document.getElementById('model-save-msg');
+  if (res?.ok) {
+    msg.textContent = 'تم حفظ النموذج: ' + currentModel;
+    msg.style.display = 'flex';
+    toast('تم حفظ النموذج', 'success');
+    setTimeout(() => msg.style.display = 'none', 3000);
+  } else {
+    toast(res?.error || 'فشل الحفظ', 'error');
+  }
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('api-key');
+  input.type  = input.type === 'password' ? 'text' : 'password';
+  document.getElementById('toggle-key-btn').textContent = input.type === 'password' ? '👁' : '🙈';
+}
+
+async function saveApiKey() {
+  const key  = document.getElementById('api-key').value.trim();
+  const err  = document.getElementById('api-error');
+  const succ = document.getElementById('api-success');
+  err.style.display = succ.style.display = 'none';
+
+  if (!key) { err.textContent = 'أدخل المفتاح'; err.style.display='flex'; return; }
+  if (!key.startsWith('sk-or')) {
+    err.textContent = 'المفتاح يجب أن يبدأ بـ sk-or...';
+    err.style.display = 'flex'; return;
+  }
+
+  const res = await API.post('/api/settings', { openrouter_key: key });
+  if (res?.ok) {
+    succ.textContent = 'تم حفظ المفتاح بنجاح ✓';
+    succ.style.display = 'flex';
+    document.getElementById('api-key').value = '';
+    document.getElementById('current-key-preview').textContent =
+      'المفتاح الحالي: ' + key.slice(0,8) + '••••••••';
+    toast('تم حفظ المفتاح', 'success');
+  } else {
+    err.textContent = res?.error || 'فشل الحفظ';
+    err.style.display = 'flex';
+  }
+}
+
+async function testApiKey() {
+  const key = document.getElementById('api-key').value.trim();
+  const err  = document.getElementById('api-error');
+  const succ = document.getElementById('api-success');
+  err.style.display = succ.style.display = 'none';
+
+  toast('جارٍ اختبار الاتصال...', 'info');
+
+  const res = await API.post('/api/settings/test', {
+    api_key: key || undefined,
+    model:   currentModel || undefined,
+  });
+
+  if (res?.ok) {
+    succ.textContent = '✓ ' + (res.message || 'الاتصال ناجح');
+    succ.style.display = 'flex';
+    toast('الاتصال ناجح ✓', 'success');
+  } else {
+    err.textContent = '✕ ' + (res?.error || 'فشل الاتصال');
+    err.style.display = 'flex';
+    toast('فشل الاتصال', 'error');
+  }
+}
+
+async function loadStats() {
+  const res = await API.get('/api/settings/stats');
+  const el  = document.getElementById('stats-content');
+  if (!res?.ok) { el.innerHTML = '<p style="color:var(--text3)">تعذر تحميل الإحصائيات</p>'; return; }
+  const s = res.stats;
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">${s.totalStories}</div>
+        <div class="stat-label">قصة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${s.totalChapters}</div>
+        <div class="stat-label">فصل معتمد</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${s.successRate}%</div>
+        <div class="stat-label">نسبة النجاح</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${(s.avgResponseMs/1000).toFixed(1)}s</div>
+        <div class="stat-label">متوسط وقت الرد</div>
+      </div>
+    </div>
+    <p style="font-size:.82rem;color:var(--text3)">
+      آخر ${s.totalRequests} طلب محلل
+    </p>
+  `;
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (name === 'stats') loadStats();
+}
+
+init();
+</script>
+</body>
+</html>
