@@ -8,12 +8,12 @@ const express    = require('express');
 const session    = require('express-session');
 const path       = require('path');
 
-const authRoutes     = require('./src/routes/auth');
-const storyRoutes    = require('./src/routes/stories');
-const chapterRoutes  = require('./src/routes/chapters');
-const generateRoutes = require('./src/routes/generate');
-const settingsRoutes = require('./src/routes/settings');
-const { requireAuth } = require('./src/middleware/auth');
+const authRoutes     = require('./src/authRoute');
+const storyRoutes    = require('./src/stories');
+const chapterRoutes  = require('./src/chapters');
+const generateRoutes = require('./src/generate');
+const settingsRoutes = require('./src/settings');
+const { requireAuth } = require('./src/authMiddleware');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;

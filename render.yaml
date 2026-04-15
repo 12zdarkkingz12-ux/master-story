@@ -3,6 +3,7 @@ services:
     name: master-story
     env: node
     plan: free
+    nodeVersion: 20.19.0
     buildCommand: npm install
     startCommand: npm start
     envVars:
@@ -11,7 +12,7 @@ services:
       - key: APP_PASSWORD
         sync: false
       - key: SESSION_SECRET
-        generateValue: true
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
