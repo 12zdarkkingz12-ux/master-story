@@ -1,12 +1,25 @@
 // ============================================================
-//  Master Story — services/supabase.js
+//  Master Story — src/supabase.js
 // ============================================================
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;           // anon key (للقراءة العامة)
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;  // service_role (للكتابة الآمنة)
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('⚠ تحذير: SUPABASE_URL أو SUPABASE_KEY غير موجودين في .env');
+}
+
+// عميل القراءة (anon)
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// عميل الكتابة (service_role إذا توفر، وإلا يرجع لـ anon)
+const supabaseAdmin = SERVICE_KEY
+  ? createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : supabase;
 
 // ── مساعدات القصص ─────────────────────────────────────────────
 
@@ -30,7 +43,7 @@ async function getStoryById(id) {
 }
 
 async function createStory(storyData) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('stories')
     .insert(storyData)
     .select()
@@ -40,7 +53,7 @@ async function createStory(storyData) {
 }
 
 async function updateStory(id, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('stories')
     .update(updates)
     .eq('id', id)
@@ -51,7 +64,7 @@ async function updateStory(id, updates) {
 }
 
 async function deleteStory(id) {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('stories')
     .delete()
     .eq('id', id);
@@ -105,7 +118,7 @@ async function getNextChapterNum(storyId) {
 }
 
 async function upsertChapter(chapterData) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('chapters')
     .upsert(chapterData, { onConflict: 'story_id,chapter_num' })
     .select()
@@ -115,20 +128,22 @@ async function upsertChapter(chapterData) {
 }
 
 async function approveChapter(id) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('chapters')
     .update({ status: 'approved' })
     .eq('id', id)
     .select()
     .single();
   if (error) throw error;
-  // تحديث عدد الفصول في القصة
-  await supabase.rpc('update_chapter_count', { p_story_id: data.story_id });
+  // تحديث عدد الفصول — نحسب يدوياً بدل RPC لأمان أكثر
+  const chapters = await getChaptersByStory(data.story_id);
+  const count    = chapters.filter(c => c.status === 'approved').length;
+  await updateStory(data.story_id, { chapter_count: count });
   return data;
 }
 
 async function deleteChapter(id) {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('chapters')
     .delete()
     .eq('id', id);
@@ -147,7 +162,7 @@ async function getConfig(key) {
 }
 
 async function setConfig(key, value) {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('config')
     .upsert({ key, value }, { onConflict: 'key' });
   if (error) throw error;
@@ -166,11 +181,11 @@ async function getAllConfig() {
 // ── سجل التوليد ───────────────────────────────────────────────
 
 async function logGeneration(logData) {
-  await supabase.from('gen_log').insert(logData);
+  await supabaseAdmin.from('gen_log').insert(logData);
 }
 
 module.exports = {
-  supabase,
+  supabase, supabaseAdmin,
   getAllStories, getStoryById, createStory, updateStory, deleteStory,
   getChaptersByStory, getChapterById, getApprovedSummaries,
   getNextChapterNum, upsertChapter, approveChapter, deleteChapter,
