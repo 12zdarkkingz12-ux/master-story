@@ -19,6 +19,13 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ── الـ Middleware الأساسية ───────────────────────────────────
+// FIX #12: مهلة 120 ثانية للنماذج المجانية البطيئة
+app.use((req, res, next) => {
+  req.setTimeout(120000);
+  res.setTimeout(120000);
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
