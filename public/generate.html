@@ -387,7 +387,10 @@ function handleSSEEvent(data, output, status) {
     // done
     draftChapterId = data.chapterId;
     document.getElementById('approve-section').classList.add('visible');
-    document.getElementById('model-used-label').textContent = `النموذج: ${data.model || ''}`;
+    const modelShort = (data.model || '').split('/').pop()?.replace(':free','') || '';
+    document.getElementById('model-used-label').innerHTML = modelShort
+      ? `<span style="background:var(--accent-dim);color:var(--accent);padding:.15rem .55rem;border-radius:10px;font-size:.75rem">🤖 ${modelShort}</span>`
+      : '';
     status.innerHTML = `✓ تم التوليد — ${data.wordCount} كلمة`;
     loadStory();
     return;

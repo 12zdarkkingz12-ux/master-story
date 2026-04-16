@@ -546,7 +546,7 @@ async function saveStory() {
 
   const res = await API.post('/api/stories', {
     title:      document.getElementById('title').value.trim(),
-    genre:      JSON.stringify(getSelectedGenres()),
+    genre:      getSelectedGenres(),
     style:      document.getElementById('style').value.trim(),
     darkness:   parseInt(document.getElementById('darkness').value),
     world_data: { raw: document.getElementById('world-text').value.trim() },

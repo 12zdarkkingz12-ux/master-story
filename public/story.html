@@ -130,7 +130,7 @@ function renderHeader() {
   document.title = `${story.title} — Master Story`;
   document.getElementById('detail-title').textContent = story.title;
   document.getElementById('detail-badges').innerHTML = `
-    <span class="badge badge-genre">${GENRE_ICONS[story.genre]||'📚'} ${story.genre}</span>
+    <div style="display:flex;flex-wrap:wrap;gap:.3rem">${renderGenreBadges(story.genre)}</div>
     <span style="font-size:.82rem;color:var(--text3)">الظلام: ${story.darkness}/10</span>
     <span style="font-size:.82rem;color:var(--text3)">${timeAgo(story.created_at)}</span>
   `;
@@ -144,7 +144,7 @@ function renderOverview(chapters) {
 
   document.getElementById('overview-info').innerHTML = `
     <div class="info-row"><span class="info-label">العنوان</span><span>${story.title}</span></div>
-    <div class="info-row"><span class="info-label">النوع</span><span>${story.genre}</span></div>
+    <div class="info-row"><span class="info-label">النوع</span><span style="display:flex;flex-wrap:wrap;gap:.25rem">${renderGenreBadges(story.genre)}</span></div>
     ${story.style ? `<div class="info-row"><span class="info-label">الأسلوب</span><span>${story.style}</span></div>` : ''}
     <div class="info-row"><span class="info-label">الظلام</span><span>${story.darkness}/10</span></div>
     <div class="info-row"><span class="info-label">تاريخ الإنشاء</span><span>${formatDate(story.created_at)}</span></div>

@@ -95,9 +95,8 @@ async function loadStories() {
           حذف
         </button>
       </div>
-      <div class="story-card-meta">
-        <span class="badge badge-genre">${GENRE_ICONS[s.genre] || '📚'} ${s.genre}</span>
-        <span class="badge badge-active">نشطة</span>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.2rem">
+        ${renderGenreBadges(s.genre)}
       </div>
       <div class="story-card-stats">
         <span>📄 ${s.chapter_count} فصل</span>
