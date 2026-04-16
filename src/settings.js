@@ -43,7 +43,9 @@ router.post('/test', async (req, res) => {
     if (!keyToTest) {
       return res.status(400).json({ ok: false, error: 'لا يوجد مفتاح API للاختبار' });
     }
-    const reply = await testConnection(keyToTest, model);
+    // FIX #8: استخدم النموذج المرسل من العميل فعلاً
+    const modelToTest = model || await db.getConfig('openrouter_model') || 'google/gemma-3-12b-it:free';
+    const reply = await testConnection(keyToTest, modelToTest);
     res.json({ ok: true, message: `الاتصال ناجح ✓ — الرد: ${reply}` });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
