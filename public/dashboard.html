@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Master Story — قصصي</title>
 <link rel="stylesheet" href="/style.css">
+<style>
+.sort-bar {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+.sort-label { font-size: .82rem; color: var(--text3); }
+.sort-btn {
+  padding: .3rem .8rem; border-radius: 20px; font-size: .8rem;
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; transition: all var(--trans);
+}
+.sort-btn:hover  { border-color: var(--border2); color: var(--text); }
+.sort-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.story-last-chapter {
+  font-size: .78rem; color: var(--text3);
+  margin-top: .25rem;
+  display: flex; align-items: center; gap: .3rem;
+}
+.story-words-badge {
+  font-size: .75rem; color: var(--text3);
+  background: var(--bg2); border-radius: 10px;
+  padding: .1rem .5rem;
+}
+</style>
 </head>
 <body>
 
@@ -17,17 +42,22 @@
       <h1 class="page-title">قصصي</h1>
       <p class="page-subtitle" id="stories-count">تحميل...</p>
     </div>
-    <a href="/wizard.html" class="btn btn-primary btn-lg">
-      ✦ قصة جديدة
-    </a>
+    <a href="/wizard.html" class="btn btn-primary btn-lg">✦ قصة جديدة</a>
   </div>
 
-  <!-- حالة الخطأ -->
+  <!-- شريط الترتيب -->
+  <div class="sort-bar" id="sort-bar" style="display:none">
+    <span class="sort-label">ترتيب:</span>
+    <button class="sort-btn active" data-sort="newest"  onclick="setSort('newest')">الأحدث</button>
+    <button class="sort-btn"        data-sort="oldest"  onclick="setSort('oldest')">الأقدم</button>
+    <button class="sort-btn"        data-sort="chapters" onclick="setSort('chapters')">الأكثر فصولاً</button>
+    <button class="sort-btn"        data-sort="words"    onclick="setSort('words')">الأكثر كلمات</button>
+    <button class="sort-btn"        data-sort="name"     onclick="setSort('name')">الاسم</button>
+  </div>
+
   <div id="error-msg" class="alert alert-error" style="display:none"></div>
 
-  <!-- شبكة القصص -->
   <div id="stories-grid" class="grid grid-2">
-    <!-- تحميل -->
     <div class="card" style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3)">
       <div class="spinner" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px"></div>
       <p>جارٍ تحميل قصصك...</p>
@@ -36,12 +66,13 @@
 
 </div>
 
-<!-- مربع حذف قصة -->
+<!-- مودال الحذف -->
 <div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center">
   <div class="card" style="max-width:380px;width:90%">
     <h3 style="font-family:'Amiri',serif;margin-bottom:.8rem;color:var(--red)">حذف القصة</h3>
     <p style="color:var(--text2);margin-bottom:1.5rem;font-size:.9rem">
-      هل أنت متأكد من حذف "<strong id="delete-story-title"></strong>"؟ سيتم حذف جميع فصولها أيضاً. هذا لا يمكن التراجع عنه.
+      هل أنت متأكد من حذف "<strong id="delete-story-title"></strong>"؟<br>
+      سيُحذف جميع فصولها أيضاً ولا يمكن التراجع.
     </p>
     <div style="display:flex;gap:.8rem;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeDeleteModal()">إلغاء</button>
@@ -54,14 +85,15 @@
 
 <script src="/api.js"></script>
 <script>
+let allStories     = [];
 let deleteTargetId = null;
+let currentSort    = 'newest';
 
 document.getElementById('navbar-container').innerHTML = buildNavbar('قصصي');
 
 async function loadStories() {
-  const res = await API.get('/api/stories');
+  const res  = await API.get('/api/stories');
   const grid = document.getElementById('stories-grid');
-  const countEl = document.getElementById('stories-count');
 
   if (!res || !res.ok) {
     document.getElementById('error-msg').textContent = res?.error || 'تعذّر تحميل القصص';
@@ -70,11 +102,47 @@ async function loadStories() {
     return;
   }
 
-  const stories = res.stories || [];
-  countEl.textContent = stories.length === 0 ? 'لا توجد قصص بعد'
-    : `${stories.length} قصة`;
+  allStories = res.stories || [];
+  updateCount();
+  renderStories();
 
-  if (stories.length === 0) {
+  if (allStories.length > 1) {
+    document.getElementById('sort-bar').style.display = 'flex';
+  }
+}
+
+function updateCount() {
+  const el = document.getElementById('stories-count');
+  el.textContent = allStories.length === 0 ? 'لا توجد قصص بعد'
+    : allStories.length === 1 ? 'قصة واحدة'
+    : `${allStories.length} قصة`;
+}
+
+function setSort(sortKey) {
+  currentSort = sortKey;
+  document.querySelectorAll('.sort-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === sortKey);
+  });
+  renderStories();
+}
+
+function getSorted() {
+  const arr = [...allStories];
+  switch (currentSort) {
+    case 'newest':   return arr.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    case 'oldest':   return arr.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    case 'chapters': return arr.sort((a,b) => (b.chapter_count||0) - (a.chapter_count||0));
+    case 'words':    return arr.sort((a,b) => (b.total_words||0)   - (a.total_words||0));
+    case 'name':     return arr.sort((a,b) => a.title.localeCompare(b.title, 'ar'));
+    default:         return arr;
+  }
+}
+
+function renderStories() {
+  const grid   = document.getElementById('stories-grid');
+  const sorted = getSorted();
+
+  if (sorted.length === 0) {
     grid.innerHTML = `
       <div style="grid-column:1/-1">
         <div class="empty-state">
@@ -86,7 +154,13 @@ async function loadStories() {
     return;
   }
 
-  grid.innerHTML = stories.map(s => `
+  grid.innerHTML = sorted.map(s => {
+    const wordsText  = s.total_words > 0 ? `${s.total_words.toLocaleString('ar')} كلمة` : '';
+    const lastChText = s.last_chapter_at
+      ? `آخر فصل: ${timeAgo(s.last_chapter_at)}`
+      : (s.chapter_count > 0 ? '' : 'لا توجد فصول بعد');
+
+    return `
     <div class="story-card fade-in" onclick="location.href='/story.html?id=${s.id}'">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem">
         <div class="story-card-title">${s.title}</div>
@@ -95,21 +169,23 @@ async function loadStories() {
           حذف
         </button>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.2rem">
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem">
         ${renderGenreBadges(s.genre)}
       </div>
-      <div class="story-card-stats">
+      <div class="story-card-stats" style="margin-top:.5rem">
         <span>📄 ${s.chapter_count} فصل</span>
+        ${wordsText ? `<span class="story-words-badge">📝 ${wordsText}</span>` : ''}
         <span>🕐 ${timeAgo(s.created_at)}</span>
       </div>
-      <div style="margin-top:.3rem">
+      ${lastChText ? `<div class="story-last-chapter">🕘 ${lastChText}</div>` : ''}
+      <div style="margin-top:.7rem;display:flex;gap:.5rem">
         <a href="/generate.html?id=${s.id}" class="btn btn-secondary btn-sm"
-          onclick="event.stopPropagation()">
-          ✦ ولّد فصل
-        </a>
+          onclick="event.stopPropagation()">✦ ولّد فصل</a>
+        <a href="/library.html?id=${s.id}" class="btn btn-ghost btn-sm"
+          onclick="event.stopPropagation()">📖 اقرأ</a>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function openDeleteModal(id, title) {
@@ -117,12 +193,10 @@ function openDeleteModal(id, title) {
   document.getElementById('delete-story-title').textContent = title;
   document.getElementById('delete-modal').style.display = 'flex';
 }
-
 function closeDeleteModal() {
   deleteTargetId = null;
   document.getElementById('delete-modal').style.display = 'none';
 }
-
 async function confirmDelete() {
   if (!deleteTargetId) return;
   const btn = document.getElementById('confirm-delete-btn');

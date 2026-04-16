@@ -7,72 +7,47 @@
 <link rel="stylesheet" href="/style.css">
 <style>
 .wizard-container { max-width: 760px; margin: 0 auto; }
-
 .step-panel { display: none; }
 .step-panel.active { display: block; animation: fadeIn .35s ease; }
-
 .gen-box {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  margin-top: 1rem;
-  position: relative;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+  margin-top: 1rem; position: relative;
 }
-
 .gen-box.loading { border-color: var(--accent); }
-
-.gen-actions {
-  display: flex; gap: .7rem; margin-top: 1rem; flex-wrap: wrap;
-}
-
+.gen-actions { display: flex; gap: .7rem; margin-top: 1rem; flex-wrap: wrap; }
 .char-count-badge {
-  display: inline-flex; align-items: center;
-  gap: .35rem;
-  padding: .25rem .75rem;
-  border-radius: 20px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  font-size: .8rem; font-weight: 500;
-  cursor: pointer;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .25rem .75rem; border-radius: 20px;
+  background: var(--accent-dim); color: var(--accent);
+  font-size: .8rem; font-weight: 500; cursor: pointer;
   transition: all var(--trans);
 }
-.char-count-badge:hover { background: rgba(200,146,74,.2); }
-.char-count-badge.selected {
-  background: var(--accent);
-  color: #0B0D0C;
-}
-
-.darkness-display {
-  font-size: 1.8rem;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: .3rem;
-}
-
-.section-hint {
-  font-size: .82rem; color: var(--text3);
-  margin-top: .3rem;
-}
-
+.char-count-badge:hover   { background: rgba(200,146,74,.2); }
+.char-count-badge.selected { background: var(--accent); color: #0B0D0C; }
+.darkness-display { font-size: 1.8rem; text-align: center; line-height: 1; margin-bottom: .3rem; }
+.section-hint { font-size: .82rem; color: var(--text3); margin-top: .3rem; }
 .edit-area {
   width: 100%; min-height: 180px;
   background: transparent; border: none; outline: none;
   color: var(--text); font-family: 'Tajawal', sans-serif;
   font-size: .95rem; line-height: 1.9; resize: vertical;
 }
-
-.final-summary {
-  display: grid; gap: .6rem; margin-top: 1rem;
-}
-
+.final-summary { display: grid; gap: .6rem; margin-top: 1rem; }
 .summary-row {
   display: flex; gap: .8rem; align-items: flex-start;
   padding: .7rem; background: var(--card2); border-radius: var(--radius);
   font-size: .9rem;
 }
 .summary-row .sr-label { color: var(--text3); min-width: 90px; }
-.summary-row .sr-value { color: var(--text); }
+
+/* مؤشر الحفظ التلقائي */
+.autosave-indicator {
+  font-size: .75rem; color: var(--text3);
+  display: flex; align-items: center; gap: .3rem;
+  transition: color .3s;
+}
+.autosave-indicator.saved { color: var(--green); }
 </style>
 </head>
 <body>
@@ -82,58 +57,46 @@
 <div class="container">
 <div class="wizard-container fade-in">
 
-  <!-- رأس الصفحة -->
   <div class="page-header">
     <div>
       <h1 class="page-title">قصة جديدة</h1>
       <p class="page-subtitle">بناء القصة خطوة بخطوة</p>
     </div>
-    <a href="/dashboard.html" class="btn btn-ghost">→ رجوع</a>
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <span class="autosave-indicator" id="autosave-indicator">💾 مسودة محفوظة</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearDraft()" title="حذف المسودة المحفوظة">✕ مسح</button>
+      <a href="/dashboard.html" class="btn btn-ghost">→ رجوع</a>
+    </div>
   </div>
 
-  <!-- خطوات الساحر -->
+  <!-- خطوات -->
   <div class="wizard-steps" id="wizard-steps">
-    <div class="wizard-step active" id="step-ind-0">
-      <div class="step-circle">١</div>
-      <span class="step-label">الفكرة</span>
-    </div>
+    <div class="wizard-step active" id="step-ind-0"><div class="step-circle">١</div><span class="step-label">الفكرة</span></div>
     <div class="step-connector" id="conn-0"></div>
-    <div class="wizard-step" id="step-ind-1">
-      <div class="step-circle">٢</div>
-      <span class="step-label">العالم</span>
-    </div>
+    <div class="wizard-step" id="step-ind-1"><div class="step-circle">٢</div><span class="step-label">العالم</span></div>
     <div class="step-connector" id="conn-1"></div>
-    <div class="wizard-step" id="step-ind-2">
-      <div class="step-circle">٣</div>
-      <span class="step-label">الشخصيات</span>
-    </div>
+    <div class="wizard-step" id="step-ind-2"><div class="step-circle">٣</div><span class="step-label">الشخصيات</span></div>
     <div class="step-connector" id="conn-2"></div>
-    <div class="wizard-step" id="step-ind-3">
-      <div class="step-circle">٤</div>
-      <span class="step-label">الخط الزمني</span>
-    </div>
+    <div class="wizard-step" id="step-ind-3"><div class="step-circle">٤</div><span class="step-label">الخط الزمني</span></div>
     <div class="step-connector" id="conn-3"></div>
-    <div class="wizard-step" id="step-ind-4">
-      <div class="step-circle">٥</div>
-      <span class="step-label">حفظ</span>
-    </div>
+    <div class="wizard-step" id="step-ind-4"><div class="step-circle">٥</div><span class="step-label">حفظ</span></div>
   </div>
 
-  <!-- ── الخطوة ١: الفكرة ── -->
+  <!-- الخطوة ١: الفكرة -->
   <div class="step-panel active" id="step-0">
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">الفكرة الأساسية</span>
-      </div>
+      <div class="card-header"><span class="card-title">الفكرة الأساسية</span></div>
 
       <div class="form-group">
         <label>عنوان القصة *</label>
-        <input type="text" id="title" placeholder="مثال: ظل الفجر، أو الملك المنسي..." maxlength="200">
+        <input type="text" id="title" placeholder="مثال: ظل الفجر، أو الملك المنسي..." maxlength="200"
+          oninput="saveDraft()">
       </div>
 
       <div class="form-group">
         <label>الأسلوب والنبرة</label>
-        <input type="text" id="style" placeholder="مثال: شعري، مباشر، كلاسيكي...">
+        <input type="text" id="style" placeholder="مثال: شعري، مباشر، كلاسيكي..."
+          oninput="saveDraft()">
       </div>
 
       <div class="form-group">
@@ -150,11 +113,10 @@
           <span id="darkness-val" style="color:var(--accent);margin-right:.5rem">٥</span>
         </label>
         <div class="darkness-display" id="darkness-emoji">⚖️</div>
-        <input type="range" min="1" max="10" value="5" id="darkness" oninput="updateDarkness(this.value)">
+        <input type="range" min="1" max="10" value="5" id="darkness"
+          oninput="updateDarkness(this.value);saveDraft()">
         <div class="range-labels">
-          <span>خفيف وأملي</span>
-          <span>متوازن</span>
-          <span>داكن وقاسٍ</span>
+          <span>خفيف وأملي</span><span>متوازن</span><span>داكن وقاسٍ</span>
         </div>
       </div>
 
@@ -166,7 +128,7 @@
     </div>
   </div>
 
-  <!-- ── الخطوة ٢: العالم ── -->
+  <!-- الخطوة ٢: العالم -->
   <div class="step-panel" id="step-1">
     <div class="card">
       <div class="card-header">
@@ -178,22 +140,17 @@
           </select>
         </div>
       </div>
-
       <p class="section-hint">الذكاء الاصطناعي سيبني عالم قصتك الكامل. يمكنك تعديل النتيجة بعد التوليد.</p>
-
       <div class="gen-box" id="world-box">
-        <textarea class="edit-area" id="world-text" placeholder="اضغط &quot;ولّد العالم&quot; لبدء التوليد..."></textarea>
+        <textarea class="edit-area" id="world-text"
+          placeholder='اضغط "ولّد العالم" لبدء التوليد...'
+          oninput="saveDraft()"></textarea>
       </div>
-
       <div class="gen-actions">
-        <button class="btn btn-primary" id="gen-world-btn" onclick="generateWorld()">
-          ✦ ولّد العالم
-        </button>
-        <button class="btn btn-ghost btn-sm" onclick="generateWorld()" title="إعادة التوليد">↺ أعِد التوليد</button>
+        <button class="btn btn-primary" id="gen-world-btn" onclick="generateWorld()">✦ ولّد العالم</button>
+        <button class="btn btn-ghost btn-sm" onclick="generateWorld()">↺ أعِد التوليد</button>
       </div>
-
       <hr class="divider">
-
       <div style="display:flex;justify-content:space-between;margin-top:.5rem">
         <button class="btn btn-ghost" onclick="gotoStep(0)">← السابق</button>
         <button class="btn btn-primary btn-lg" onclick="goToStep2()">التالي: الشخصيات →</button>
@@ -201,7 +158,7 @@
     </div>
   </div>
 
-  <!-- ── الخطوة ٣: الشخصيات ── -->
+  <!-- الخطوة ٣: الشخصيات -->
   <div class="step-panel" id="step-2">
     <div class="card">
       <div class="card-header">
@@ -213,7 +170,6 @@
           </select>
         </div>
       </div>
-
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
         <span style="font-size:.85rem;color:var(--text2);align-self:center">عدد الشخصيات:</span>
         <span class="char-count-badge selected" data-val="3" onclick="selectCharCount(this)">٣</span>
@@ -221,20 +177,16 @@
         <span class="char-count-badge" data-val="5" onclick="selectCharCount(this)">٥</span>
         <span class="char-count-badge" data-val="6" onclick="selectCharCount(this)">٦</span>
       </div>
-
       <div class="gen-box" id="chars-box">
-        <textarea class="edit-area" id="chars-text" placeholder="اضغط &quot;ولّد الشخصيات&quot; لبدء التوليد..." style="min-height:220px"></textarea>
+        <textarea class="edit-area" id="chars-text"
+          placeholder='اضغط "ولّد الشخصيات" لبدء التوليد...' style="min-height:220px"
+          oninput="saveDraft()"></textarea>
       </div>
-
       <div class="gen-actions">
-        <button class="btn btn-primary" id="gen-chars-btn" onclick="generateCharacters()">
-          ✦ ولّد الشخصيات
-        </button>
+        <button class="btn btn-primary" id="gen-chars-btn" onclick="generateCharacters()">✦ ولّد الشخصيات</button>
         <button class="btn btn-ghost btn-sm" onclick="generateCharacters()">↺ أعِد التوليد</button>
       </div>
-
       <hr class="divider">
-
       <div style="display:flex;justify-content:space-between;margin-top:.5rem">
         <button class="btn btn-ghost" onclick="gotoStep(1)">← السابق</button>
         <button class="btn btn-primary btn-lg" onclick="goToStep3()">التالي: الخط الزمني →</button>
@@ -242,7 +194,7 @@
     </div>
   </div>
 
-  <!-- ── الخطوة ٤: الخط الزمني ── -->
+  <!-- الخطوة ٤: الخط الزمني -->
   <div class="step-panel" id="step-3">
     <div class="card">
       <div class="card-header">
@@ -254,22 +206,17 @@
           </select>
         </div>
       </div>
-
       <p class="section-hint">هيكل القصة العام — البداية، التحولات، والنهاية.</p>
-
       <div class="gen-box" id="timeline-box">
-        <textarea class="edit-area" id="timeline-text" placeholder="اضغط &quot;ولّد الخط الزمني&quot; لبدء التوليد..."></textarea>
+        <textarea class="edit-area" id="timeline-text"
+          placeholder='اضغط "ولّد الخط الزمني" لبدء التوليد...'
+          oninput="saveDraft()"></textarea>
       </div>
-
       <div class="gen-actions">
-        <button class="btn btn-primary" id="gen-timeline-btn" onclick="generateTimeline()">
-          ✦ ولّد الخط الزمني
-        </button>
+        <button class="btn btn-primary" id="gen-timeline-btn" onclick="generateTimeline()">✦ ولّد الخط الزمني</button>
         <button class="btn btn-ghost btn-sm" onclick="generateTimeline()">↺ أعِد التوليد</button>
       </div>
-
       <hr class="divider">
-
       <div style="display:flex;justify-content:space-between;margin-top:.5rem">
         <button class="btn btn-ghost" onclick="gotoStep(2)">← السابق</button>
         <button class="btn btn-primary btn-lg" onclick="goToStep4()">التالي: مراجعة وحفظ →</button>
@@ -277,28 +224,19 @@
     </div>
   </div>
 
-  <!-- ── الخطوة ٥: حفظ ── -->
+  <!-- الخطوة ٥: حفظ -->
   <div class="step-panel" id="step-4">
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">مراجعة وحفظ</span>
-      </div>
-
+      <div class="card-header"><span class="card-title">مراجعة وحفظ</span></div>
       <p style="font-size:.9rem;color:var(--text2);margin-bottom:1rem">
         راجع بيانات قصتك قبل الحفظ. بعد الحفظ يمكنك البدء بتوليد الفصول.
       </p>
-
       <div class="final-summary" id="final-summary"></div>
-
       <div id="save-error" class="alert alert-error" style="display:none;margin-top:1rem"></div>
-
       <hr class="divider">
-
       <div style="display:flex;justify-content:space-between;margin-top:.5rem">
         <button class="btn btn-ghost" onclick="gotoStep(3)">← السابق</button>
-        <button class="btn btn-primary btn-lg" id="save-btn" onclick="saveStory()">
-          💾 احفظ القصة
-        </button>
+        <button class="btn btn-primary btn-lg" id="save-btn" onclick="saveStory()">💾 احفظ القصة</button>
       </div>
     </div>
   </div>
@@ -310,12 +248,81 @@
 
 <script src="/api.js"></script>
 <script>
-// ── الحالة ────────────────────────────────────────────────────
-let currentStep = 0;
+const DRAFT_KEY = 'ms_wizard_draft';
+let currentStep       = 0;
 let selectedCharCount = 3;
-let freeModels = [];
+let freeModels        = [];
+let autoSaveTimer     = null;
 
 document.getElementById('navbar-container').innerHTML = buildNavbar('');
+
+// ── Auto-Save: حفظ المسودة في localStorage ────────────────────
+function saveDraft() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const draft = {
+      title:    document.getElementById('title')?.value    || '',
+      style:    document.getElementById('style')?.value    || '',
+      genres:   getSelectedGenres(),
+      darkness: document.getElementById('darkness')?.value || '5',
+      world:    document.getElementById('world-text')?.value    || '',
+      chars:    document.getElementById('chars-text')?.value    || '',
+      timeline: document.getElementById('timeline-text')?.value || '',
+      charCount: selectedCharCount,
+      savedAt:  new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+
+    const el = document.getElementById('autosave-indicator');
+    el.textContent = '✓ حُفظ آنفاً';
+    el.classList.add('saved');
+    setTimeout(() => {
+      el.textContent = '💾 مسودة محفوظة';
+      el.classList.remove('saved');
+    }, 2000);
+  }, 800);
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (!draft.title && !draft.world && !draft.chars) return;
+
+    if (draft.title)    document.getElementById('title').value    = draft.title;
+    if (draft.style)    document.getElementById('style').value    = draft.style;
+    if (draft.darkness) {
+      document.getElementById('darkness').value = draft.darkness;
+      updateDarkness(draft.darkness);
+    }
+    if (draft.world)    document.getElementById('world-text').value    = draft.world;
+    if (draft.chars)    document.getElementById('chars-text').value    = draft.chars;
+    if (draft.timeline) document.getElementById('timeline-text').value = draft.timeline;
+    if (draft.charCount) {
+      selectedCharCount = draft.charCount;
+      document.querySelectorAll('.char-count-badge').forEach(b => {
+        b.classList.toggle('selected', parseInt(b.dataset.val) === selectedCharCount);
+      });
+    }
+    // استعادة التصنيفات
+    if (draft.genres?.length) {
+      draft.genres.forEach(id => {
+        const el = document.querySelector(`.genre-tag[data-id="${id}"]`);
+        if (el) el.classList.add('selected');
+      });
+      updateGenrePreview();
+    }
+
+    document.getElementById('autosave-indicator').textContent = '💾 استُعيدت المسودة';
+  } catch (_) {}
+}
+
+function clearDraft() {
+  if (!confirm('هل تريد مسح المسودة المحفوظة وبدء قصة جديدة؟')) return;
+  localStorage.removeItem(DRAFT_KEY);
+  location.reload();
+}
 
 // ── تحميل النماذج ─────────────────────────────────────────────
 async function loadModels() {
@@ -329,7 +336,6 @@ async function loadModels() {
       opt.value = m.id; opt.textContent = m.name;
       sel.appendChild(opt);
     });
-    // خيار مخصص
     const custom = document.createElement('option');
     custom.value = '__custom__'; custom.textContent = '✏ نموذج مخصص...';
     sel.appendChild(custom);
@@ -339,15 +345,12 @@ async function loadModels() {
 
 function handleModelSelect(sel) {
   if (sel.value === '__custom__') {
-    const name = prompt('أدخل اسم النموذج (مثال: mistralai/mistral-7b-instruct:free)');
+    const name = prompt('أدخل اسم النموذج:');
     if (name) {
       const opt = document.createElement('option');
       opt.value = name; opt.textContent = name;
-      sel.appendChild(opt);
-      sel.value = name;
-    } else {
-      sel.value = '';
-    }
+      sel.appendChild(opt); sel.value = name;
+    } else { sel.value = ''; }
   }
 }
 
@@ -358,26 +361,22 @@ function updateDarkness(v) {
   document.getElementById('darkness-emoji').textContent = emojis[v] || '⚖️';
 }
 
-// ── عدد الشخصيات ──────────────────────────────────────────────
 function selectCharCount(el) {
   document.querySelectorAll('.char-count-badge').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
   selectedCharCount = parseInt(el.dataset.val);
+  saveDraft();
 }
 
-// ── التنقل بين الخطوات ────────────────────────────────────────
+// ── التنقل ────────────────────────────────────────────────────
 function gotoStep(n) {
-  document.querySelectorAll('.step-panel').forEach((p,i) => {
-    p.classList.toggle('active', i === n);
-  });
-  document.querySelectorAll('[id^="step-ind-"]').forEach((el, i) => {
+  document.querySelectorAll('.step-panel').forEach((p,i) => p.classList.toggle('active', i === n));
+  document.querySelectorAll('[id^="step-ind-"]').forEach((el,i) => {
     el.classList.remove('active','done');
-    if (i < n)       el.classList.add('done');
+    if (i < n)        el.classList.add('done');
     else if (i === n) el.classList.add('active');
   });
-  document.querySelectorAll('[id^="conn-"]').forEach((el, i) => {
-    el.classList.toggle('done', i < n);
-  });
+  document.querySelectorAll('[id^="conn-"]').forEach((el,i) => el.classList.toggle('done', i < n));
   currentStep = n;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -386,119 +385,89 @@ function goToStep1() {
   const title  = document.getElementById('title').value.trim();
   const genres = getSelectedGenres();
   const err    = document.getElementById('step0-error');
-  if (!title)         { err.textContent = 'أدخل عنوان القصة';       err.style.display='flex'; return; }
+  if (!title)         { err.textContent = 'أدخل عنوان القصة';            err.style.display='flex'; return; }
   if (!genres.length) { err.textContent = 'اختر تصنيفاً واحداً على الأقل'; err.style.display='flex'; return; }
   err.style.display = 'none';
   gotoStep(1);
 }
-
 function goToStep2() {
-  const world = document.getElementById('world-text').value.trim();
-  if (!world) { toast('ولّد العالم أولاً أو اكتبه يدوياً', 'warn'); return; }
+  if (!document.getElementById('world-text').value.trim()) { toast('ولّد العالم أولاً أو اكتبه يدوياً','warn'); return; }
   gotoStep(2);
 }
-
 function goToStep3() {
-  const chars = document.getElementById('chars-text').value.trim();
-  if (!chars) { toast('ولّد الشخصيات أولاً أو اكتبها يدوياً', 'warn'); return; }
+  if (!document.getElementById('chars-text').value.trim()) { toast('ولّد الشخصيات أولاً أو اكتبها يدوياً','warn'); return; }
   gotoStep(3);
 }
-
 function goToStep4() {
-  const timeline = document.getElementById('timeline-text').value.trim();
-  if (!timeline) { toast('ولّد الخط الزمني أولاً أو اكتبه يدوياً', 'warn'); return; }
+  if (!document.getElementById('timeline-text').value.trim()) { toast('ولّد الخط الزمني أولاً أو اكتبه يدوياً','warn'); return; }
   buildSummary();
   gotoStep(4);
 }
 
-// ── توليد العالم ──────────────────────────────────────────────
+// ── التوليد ───────────────────────────────────────────────────
 async function generateWorld() {
   const btn = document.getElementById('gen-world-btn');
   const box = document.getElementById('world-box');
   const txt = document.getElementById('world-text');
-
   btn.disabled = true; btn.textContent = '⏳ جارٍ التوليد...';
-  box.classList.add('loading');
-  txt.value = '';
+  box.classList.add('loading'); txt.value = '';
 
   const res = await API.post('/api/generate/world', {
-    title:    document.getElementById('title').value.trim(),
-    genre:    getSelectedGenres(),
-    style:    document.getElementById('style').value.trim(),
+    title: document.getElementById('title').value.trim(),
+    genre: getSelectedGenres(),
+    style: document.getElementById('style').value.trim(),
     darkness: document.getElementById('darkness').value,
-    model:    document.getElementById('model-world').value || undefined,
+    model: document.getElementById('model-world').value || undefined,
   });
 
   btn.disabled = false; btn.textContent = '✦ ولّد العالم';
   box.classList.remove('loading');
-
-  if (res?.ok) {
-    txt.value = res.text;
-    toast('تم توليد العالم بنجاح', 'success');
-  } else {
-    toast(res?.error || 'فشل التوليد', 'error');
-  }
+  if (res?.ok) { txt.value = res.text; saveDraft(); toast('تم توليد العالم بنجاح','success'); }
+  else         { toast(res?.error || 'فشل التوليد','error'); }
 }
 
-// ── توليد الشخصيات ────────────────────────────────────────────
 async function generateCharacters() {
   const btn = document.getElementById('gen-chars-btn');
   const box = document.getElementById('chars-box');
   const txt = document.getElementById('chars-text');
-
   btn.disabled = true; btn.textContent = '⏳ جارٍ التوليد...';
-  box.classList.add('loading');
-  txt.value = '';
+  box.classList.add('loading'); txt.value = '';
 
   const res = await API.post('/api/generate/characters', {
-    title:      document.getElementById('title').value.trim(),
-    genre:      getSelectedGenres(),
+    title: document.getElementById('title').value.trim(),
+    genre: getSelectedGenres(),
     world_data: { raw: document.getElementById('world-text').value.trim() },
-    charCount:  selectedCharCount,
-    model:      document.getElementById('model-chars').value || undefined,
+    charCount: selectedCharCount,
+    model: document.getElementById('model-chars').value || undefined,
   });
 
   btn.disabled = false; btn.textContent = '✦ ولّد الشخصيات';
   box.classList.remove('loading');
-
-  if (res?.ok) {
-    txt.value = res.text;
-    toast('تم توليد الشخصيات بنجاح', 'success');
-  } else {
-    toast(res?.error || 'فشل التوليد', 'error');
-  }
+  if (res?.ok) { txt.value = res.text; saveDraft(); toast('تم توليد الشخصيات بنجاح','success'); }
+  else         { toast(res?.error || 'فشل التوليد','error'); }
 }
 
-// ── توليد الخط الزمني ─────────────────────────────────────────
 async function generateTimeline() {
   const btn = document.getElementById('gen-timeline-btn');
   const box = document.getElementById('timeline-box');
   const txt = document.getElementById('timeline-text');
-
   btn.disabled = true; btn.textContent = '⏳ جارٍ التوليد...';
-  box.classList.add('loading');
-  txt.value = '';
+  box.classList.add('loading'); txt.value = '';
 
   const res = await API.post('/api/generate/timeline', {
-    title:      document.getElementById('title').value.trim(),
-    genre:      getSelectedGenres(),
+    title: document.getElementById('title').value.trim(),
+    genre: getSelectedGenres(),
     world_data: { raw: document.getElementById('world-text').value.trim() },
     characters: document.getElementById('chars-text').value.trim(),
-    model:      document.getElementById('model-timeline').value || undefined,
+    model: document.getElementById('model-timeline').value || undefined,
   });
 
   btn.disabled = false; btn.textContent = '✦ ولّد الخط الزمني';
   box.classList.remove('loading');
-
-  if (res?.ok) {
-    txt.value = res.text;
-    toast('تم توليد الخط الزمني بنجاح', 'success');
-  } else {
-    toast(res?.error || 'فشل التوليد', 'error');
-  }
+  if (res?.ok) { txt.value = res.text; saveDraft(); toast('تم توليد الخط الزمني بنجاح','success'); }
+  else         { toast(res?.error || 'فشل التوليد','error'); }
 }
 
-// ── بناء الملخص النهائي ───────────────────────────────────────
 function buildSummary() {
   const title    = document.getElementById('title').value.trim();
   const genres   = getSelectedGenres();
@@ -515,7 +484,7 @@ function buildSummary() {
     </div>
     <div class="summary-row">
       <span class="sr-label">التصنيفات</span>
-      <span class="sr-value">${genres.map(g => `${GENRE_ICONS[g]||'📚'} ${g.replace(/_/g,' ')}`).join(' · ')}</span>
+      <span class="sr-value">${genres.map(g=>`${GENRE_ICONS[g]||'📚'} ${g.replace(/_/g,' ')}`).join(' · ')}</span>
     </div>
     ${style ? `<div class="summary-row"><span class="sr-label">الأسلوب</span><span class="sr-value">${style}</span></div>` : ''}
     <div class="summary-row">
@@ -524,20 +493,19 @@ function buildSummary() {
     </div>
     <div class="summary-row">
       <span class="sr-label">العالم</span>
-      <span class="sr-value">${truncate(world, 200)}</span>
+      <span class="sr-value">${truncate(world,200)}</span>
     </div>
     <div class="summary-row">
       <span class="sr-label">الشخصيات</span>
-      <span class="sr-value">${truncate(chars, 200)}</span>
+      <span class="sr-value">${truncate(chars,200)}</span>
     </div>
     <div class="summary-row">
       <span class="sr-label">الخط الزمني</span>
-      <span class="sr-value">${truncate(timeline, 200)}</span>
+      <span class="sr-value">${truncate(timeline,200)}</span>
     </div>
   `;
 }
 
-// ── حفظ القصة ─────────────────────────────────────────────────
 async function saveStory() {
   const btn = document.getElementById('save-btn');
   const err = document.getElementById('save-error');
@@ -546,7 +514,7 @@ async function saveStory() {
 
   const res = await API.post('/api/stories', {
     title:      document.getElementById('title').value.trim(),
-    genre:      getSelectedGenres(),
+    genre:      JSON.stringify(getSelectedGenres()),
     style:      document.getElementById('style').value.trim(),
     darkness:   parseInt(document.getElementById('darkness').value),
     world_data: { raw: document.getElementById('world-text').value.trim() },
@@ -555,10 +523,9 @@ async function saveStory() {
   });
 
   if (res?.ok) {
-    toast('تم حفظ القصة بنجاح! ✓', 'success');
-    setTimeout(() => {
-      location.href = `/generate.html?id=${res.story.id}`;
-    }, 1000);
+    localStorage.removeItem(DRAFT_KEY); // مسح المسودة بعد الحفظ الناجح
+    toast('تم حفظ القصة بنجاح! ✓','success');
+    setTimeout(() => location.href = `/generate.html?id=${res.story.id}`, 1000);
   } else {
     err.textContent = res?.error || 'فشل الحفظ';
     err.style.display = 'flex';
@@ -566,12 +533,15 @@ async function saveStory() {
   }
 }
 
+// ── التهيئة ───────────────────────────────────────────────────
 loadModels();
 buildGenrePicker('genre-picker');
-// افتح أول مجموعة تلقائياً
+// إغلاق كل المجموعات ما عدا الأولى
 document.querySelectorAll('.genre-group-body').forEach((b,i) => {
   if (i > 0) b.style.display = 'none';
 });
+// استعادة المسودة بعد بناء genre picker
+loadDraft();
 </script>
 </body>
 </html>

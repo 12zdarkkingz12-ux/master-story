@@ -6,89 +6,91 @@
 <title>Master Story — المكتبة</title>
 <link rel="stylesheet" href="/style.css">
 <style>
+/* شريط تقدم القراءة */
+#read-progress-bar {
+  position: fixed; top: 0; right: 0; left: 0;
+  height: 3px; background: transparent; z-index: 999;
+  pointer-events: none;
+}
+#read-progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(to left, var(--accent), #f0c070);
+  transition: width .1s linear;
+}
+
 .library-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 1.5rem;
   align-items: flex-start;
 }
-
 .chapters-nav {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
   position: sticky; top: 80px;
 }
-
 .chapters-nav-header {
-  padding: 1rem 1.2rem;
-  border-bottom: 1px solid var(--border);
-  font-family: 'Amiri', serif;
-  font-size: 1rem;
-  color: var(--text2);
+  padding: 1rem 1.2rem; border-bottom: 1px solid var(--border);
+  font-family: 'Amiri', serif; font-size: 1rem; color: var(--text2);
 }
-
 .chapter-nav-item {
   padding: .7rem 1.2rem;
   display: flex; align-items: center; justify-content: space-between;
   cursor: pointer; transition: background var(--trans);
-  border-bottom: 1px solid var(--border);
-  font-size: .88rem;
+  border-bottom: 1px solid var(--border); font-size: .88rem;
 }
-
 .chapter-nav-item:last-child { border-bottom: none; }
-.chapter-nav-item:hover { background: var(--card2); }
+.chapter-nav-item:hover  { background: var(--card2); }
 .chapter-nav-item.active { background: var(--accent-dim); color: var(--accent); }
-
-.chapter-nav-num {
-  font-size: .75rem; color: var(--text3);
-}
+.chapter-nav-num { font-size: .75rem; color: var(--text3); }
 
 .reader-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
 }
-
 .reader-toolbar {
-  padding: .8rem 1.5rem;
-  border-bottom: 1px solid var(--border);
+  padding: .8rem 1.5rem; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; flex-wrap: wrap;
+  gap: .8rem; flex-wrap: wrap;
 }
-
-.reader-body { padding: 2rem 2.5rem; min-height: 400px; }
-
+.reader-body   { padding: 2rem 2.5rem; min-height: 400px; }
 .reader-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
+  padding: 1rem 1.5rem; border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  font-size: .82rem; color: var(--text3);
+  font-size: .82rem; color: var(--text3); flex-wrap: wrap; gap: .5rem;
 }
-
 .font-size-control {
   display: flex; align-items: center; gap: .4rem;
   font-size: .82rem; color: var(--text2);
 }
-
 .font-btn {
-  width: 28px; height: 28px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  background: var(--card2);
+  width: 28px; height: 28px; border: 1px solid var(--border2);
+  border-radius: var(--radius); background: var(--card2);
   color: var(--text2); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-size: .9rem; transition: all var(--trans);
 }
 .font-btn:hover { background: var(--card); color: var(--text); }
 
-/* صفحة القصة مع كل قصصها */
-.all-stories-mode .story-header {
-  text-align: center; padding: 3rem 2rem 2rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2rem;
+/* أزرار تصدير */
+.export-btn {
+  padding: .3rem .8rem; border-radius: 20px; font-size: .78rem;
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; transition: all var(--trans);
+  display: flex; align-items: center; gap: .3rem;
+}
+.export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* تنسيق طباعة */
+@media print {
+  #navbar-container, .chapters-nav, .reader-toolbar,
+  .reader-footer, #read-progress-bar, .page-header > div:last-child { display: none !important; }
+  .library-layout { display: block; }
+  .reader-body { padding: 0; }
+  .reader-card { border: none; box-shadow: none; }
+  body { background: white; color: black; }
+  .reader-content { font-size: 14pt !important; line-height: 2; }
+  .reader-chapter-title { font-size: 18pt; text-align: center; margin-bottom: 1cm; }
 }
 
 @media (max-width: 768px) {
@@ -99,6 +101,9 @@
 </style>
 </head>
 <body>
+
+<!-- شريط تقدم القراءة -->
+<div id="read-progress-bar"><div id="read-progress-fill"></div></div>
 
 <div id="navbar-container"></div>
 
@@ -122,9 +127,16 @@
         <h1 class="page-title" id="library-story-title">تحميل...</h1>
         <p class="page-subtitle" id="library-story-meta"></p>
       </div>
-      <div style="display:flex;gap:.6rem">
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
         <button class="btn btn-ghost btn-sm" onclick="goBack()">← رجوع</button>
         <a id="gen-link" href="/generate.html" class="btn btn-primary btn-sm">✦ ولّد فصلاً</a>
+        <!-- أزرار التصدير -->
+        <button class="export-btn" onclick="exportTXT()" title="تصدير القصة كاملة كملف نصي">
+          📄 TXT
+        </button>
+        <button class="export-btn" onclick="exportPDF()" title="طباعة أو حفظ كـ PDF">
+          🖨 PDF
+        </button>
       </div>
     </div>
 
@@ -138,30 +150,33 @@
             لا توجد فصول بعد
           </div>
         </div>
-        <!-- معلومات القصة -->
         <div style="padding:1rem;border-top:1px solid var(--border)">
-          <div class="sidebar-title" style="font-size:.72rem;color:var(--text3);margin-bottom:.6rem">معلومات القصة</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.05em">معلومات القصة</div>
           <div id="story-meta-sidebar" style="font-size:.8rem;color:var(--text3);display:flex;flex-direction:column;gap:.3rem"></div>
         </div>
       </div>
 
       <!-- قارئ الفصول -->
-      <div class="reader-card">
+      <div class="reader-card" id="reader-card">
         <div class="reader-toolbar">
-          <div style="display:flex;gap:.6rem;align-items:center">
-            <button class="btn btn-ghost btn-sm" id="prev-chapter-btn" onclick="navigateChapter(-1)">→ السابق</button>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <button class="btn btn-ghost btn-sm" id="prev-chapter-btn"
+              onclick="navigateChapter(-1)" disabled>→ السابق</button>
             <span id="chapter-position" style="font-size:.82rem;color:var(--text3)">—</span>
-            <button class="btn btn-ghost btn-sm" id="next-chapter-btn" onclick="navigateChapter(1)">← التالي</button>
+            <button class="btn btn-ghost btn-sm" id="next-chapter-btn"
+              onclick="navigateChapter(1)" disabled>← التالي</button>
           </div>
-          <div class="font-size-control">
-            <span>حجم الخط:</span>
-            <button class="font-btn" onclick="changeFontSize(-1)">−</button>
-            <button class="font-btn" onclick="changeFontSize(1)">+</button>
+          <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+            <div class="font-size-control">
+              <span>الخط:</span>
+              <button class="font-btn" onclick="changeFontSize(-1)">−</button>
+              <button class="font-btn" onclick="changeFontSize(1)">+</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="delete-chapter-btn"
+              onclick="deleteCurrentChapter()" style="color:var(--red);border-color:transparent;font-size:.8rem">
+              حذف
+            </button>
           </div>
-          <button class="btn btn-ghost btn-sm" id="delete-chapter-btn" onclick="deleteCurrentChapter()"
-            style="color:var(--red);border-color:transparent">
-            حذف
-          </button>
         </div>
 
         <div class="reader-body" id="reader-body">
@@ -186,14 +201,35 @@
 
 <script src="/api.js"></script>
 <script>
-let storyId       = null;
-let story         = null;
-let chapters      = [];
-let currentChIdx  = -1;
-let fontSize      = 17;
+let storyId      = null;
+let story        = null;
+let chapters     = [];
+let currentChIdx = -1;
+let fontSize     = 17;
 
 document.getElementById('navbar-container').innerHTML = buildNavbar('المكتبة');
 
+// ── شريط التقدم ───────────────────────────────────────────────
+function setupScrollProgress() {
+  const readerBody = document.getElementById('reader-body');
+  if (!readerBody) return;
+  readerBody.addEventListener('scroll', updateProgress);
+  window.addEventListener('scroll', updateProgress);
+}
+
+function updateProgress() {
+  const body     = document.getElementById('reader-body');
+  const fill     = document.getElementById('read-progress-fill');
+  if (!body || !fill) return;
+  // نحسب التقدم بناءً على محتوى القارئ أو الصفحة
+  const scrollTop    = body.scrollTop    || window.scrollY;
+  const scrollHeight = (body.scrollHeight - body.clientHeight)
+                    || (document.documentElement.scrollHeight - window.innerHeight);
+  const pct = scrollHeight > 0 ? Math.min(100, (scrollTop / scrollHeight) * 100) : 0;
+  fill.style.width = pct + '%';
+}
+
+// ── تهيئة ─────────────────────────────────────────────────────
 async function init() {
   storyId = getParam('id');
   const targetChapterId = getParam('chapter');
@@ -205,6 +241,7 @@ async function init() {
 
   document.getElementById('story-view').style.display = 'block';
   document.getElementById('gen-link').href = `/generate.html?id=${storyId}`;
+  setupScrollProgress();
 
   await loadStoryAndChapters();
 
@@ -218,7 +255,7 @@ async function init() {
 
 async function loadAllStories() {
   document.getElementById('all-stories-view').style.display = 'block';
-  const res = await API.get('/api/stories');
+  const res  = await API.get('/api/stories');
   const grid = document.getElementById('library-stories-grid');
 
   if (!res?.ok || !res.stories?.length) {
@@ -234,15 +271,15 @@ async function loadAllStories() {
   grid.innerHTML = res.stories.map(s => `
     <div class="story-card fade-in" onclick="location.href='/library.html?id=${s.id}'">
       <div class="story-card-title">${s.title}</div>
-      <div class="story-card-meta">
-        <span class="badge badge-genre">${GENRE_ICONS[s.genre]||'📚'} ${s.genre}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem">
+        ${renderGenreBadges(s.genre)}
       </div>
       <div class="story-card-stats">
         <span>📄 ${s.chapter_count} فصل</span>
+        ${s.total_words > 0 ? `<span>📝 ${s.total_words.toLocaleString('ar')} كلمة</span>` : ''}
         <span>🕐 ${timeAgo(s.created_at)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 async function loadStoryAndChapters() {
@@ -255,13 +292,13 @@ async function loadStoryAndChapters() {
   story = storyRes.story;
 
   document.getElementById('library-story-title').textContent = story.title;
-  document.getElementById('library-story-meta').textContent =
-    `${GENRE_ICONS[story.genre]||''} ${story.genre} · ${story.chapter_count} فصل`;
+  document.getElementById('library-story-meta').innerHTML =
+    `${renderGenreBadges(story.genre)} · ${story.chapter_count} فصل`;
   document.title = `${story.title} — المكتبة`;
 
   document.getElementById('story-meta-sidebar').innerHTML = `
-    <div>النوع: ${story.genre}</div>
     <div>الظلام: ${story.darkness}/10</div>
+    ${story.total_words > 0 ? `<div>الكلمات: ${story.total_words.toLocaleString('ar')}</div>` : ''}
     <div>تاريخ الإنشاء: ${formatDate(story.created_at)}</div>
   `;
 
@@ -271,7 +308,7 @@ async function loadStoryAndChapters() {
 
 function buildChaptersNav() {
   const list = document.getElementById('chapters-nav-list');
-  if (chapters.length === 0) {
+  if (!chapters.length) {
     list.innerHTML = `<div style="padding:1rem;font-size:.85rem;color:var(--text3);text-align:center">
       لا توجد فصول معتمدة
     </div>`;
@@ -280,49 +317,42 @@ function buildChaptersNav() {
   list.innerHTML = chapters.map((c, i) => `
     <div class="chapter-nav-item ${i === currentChIdx ? 'active' : ''}"
       id="nav-item-${i}" onclick="showChapter(${i})">
-      <span>${c.title || `الفصل ${c.chapter_num}`}</span>
-      <span class="chapter-nav-num">${c.word_count} كلمة</span>
-    </div>
-  `).join('');
+      <span>${truncate(c.title || `الفصل ${c.chapter_num}`, 28)}</span>
+      <span class="chapter-nav-num">${c.word_count}ك</span>
+    </div>`).join('');
 }
 
 async function showChapter(idx) {
   if (idx < 0 || idx >= chapters.length) return;
   currentChIdx = idx;
 
-  // تحديث التنقل
   buildChaptersNav();
-  document.querySelectorAll('.chapter-nav-item').forEach((el, i) => {
-    el.classList.toggle('active', i === idx);
-  });
 
-  // تحديث أزرار التنقل
   document.getElementById('prev-chapter-btn').disabled = idx === 0;
   document.getElementById('next-chapter-btn').disabled = idx === chapters.length - 1;
   document.getElementById('chapter-position').textContent = `${idx+1} / ${chapters.length}`;
 
-  // جلب المحتوى الكامل
+  // reset progress
+  document.getElementById('read-progress-fill').style.width = '0%';
+
   const res = await API.get(`/api/chapters/${chapters[idx].id}`);
   if (!res?.ok) { toast('فشل تحميل الفصل', 'error'); return; }
-
   const ch = res.chapter;
 
   document.getElementById('reader-body').innerHTML = `
     <div class="reader-chapter-title">${ch.title || 'الفصل '+ch.chapter_num}</div>
     <div class="reader-content chapter-text" style="font-size:${fontSize}px">${escapeHtml(ch.content || '')}</div>
   `;
-
   document.getElementById('chapter-word-count').textContent = `${ch.word_count} كلمة`;
-  document.getElementById('chapter-date').textContent = formatDate(ch.created_at);
-  document.getElementById('delete-chapter-btn').dataset.id = ch.id;
+  document.getElementById('chapter-date').textContent       = formatDate(ch.created_at);
+  document.getElementById('delete-chapter-btn').dataset.id  = ch.id;
 
   // scroll للأعلى
-  document.getElementById('reader-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('reader-body').scrollTop = 0;
 }
 
-function navigateChapter(dir) {
-  showChapter(currentChIdx + dir);
-}
+function navigateChapter(dir) { showChapter(currentChIdx + dir); }
 
 function changeFontSize(delta) {
   fontSize = Math.max(13, Math.min(24, fontSize + delta));
@@ -330,43 +360,127 @@ function changeFontSize(delta) {
   if (el) el.style.fontSize = fontSize + 'px';
 }
 
+// ── حذف الفصل ─────────────────────────────────────────────────
 async function deleteCurrentChapter() {
   const btn = document.getElementById('delete-chapter-btn');
   const id  = btn.dataset.id;
-  if (!id) return;
-  if (!confirm('هل تريد حذف هذا الفصل نهائياً؟')) return;
-
+  if (!id || !confirm('هل تريد حذف هذا الفصل نهائياً؟')) return;
   const res = await API.del(`/api/chapters/${id}`);
   if (res?.ok) {
     toast('تم حذف الفصل', 'success');
     await loadStoryAndChapters();
-    if (chapters.length > 0) {
-      showChapter(Math.min(currentChIdx, chapters.length - 1));
-    } else {
-      document.getElementById('reader-body').innerHTML = `
-        <div style="text-align:center;padding:3rem;color:var(--text3)">
-          <p>لا توجد فصول. <a href="/generate.html?id=${storyId}">ولّد فصلاً جديداً</a></p>
-        </div>`;
-    }
+    if (chapters.length > 0) showChapter(Math.min(currentChIdx, chapters.length - 1));
+    else document.getElementById('reader-body').innerHTML = `
+      <div style="text-align:center;padding:3rem;color:var(--text3)">
+        <p>لا توجد فصول. <a href="/generate.html?id=${storyId}">ولّد فصلاً جديداً</a></p>
+      </div>`;
   } else {
     toast(res?.error || 'فشل الحذف', 'error');
   }
 }
 
-function goBack() {
-  if (document.referrer.includes('/dashboard')) {
-    history.back();
-  } else {
-    location.href = '/library.html';
+// ── تصدير TXT ─────────────────────────────────────────────────
+async function exportTXT() {
+  toast('جارٍ تجهيز الملف...', 'info');
+  try {
+    const res = await API.get(`/api/generate/export/${storyId}`);
+    if (!res?.ok) { toast('فشل التصدير', 'error'); return; }
+
+    const { story: s, chapters: chs } = res;
+    const lines = [
+      `${s.title}`,
+      '='.repeat(s.title.length > 40 ? 40 : s.title.length),
+      '',
+      `النوع: ${parseGenres(s.genre).join(' | ')}`,
+      `درجة الظلام: ${s.darkness}/10`,
+      `عدد الفصول: ${chs.length}`,
+      `إجمالي الكلمات: ${chs.reduce((a,c) => a + (c.word_count||0), 0).toLocaleString('ar')}`,
+      '',
+      '─'.repeat(40),
+      '',
+    ];
+
+    chs.forEach(ch => {
+      lines.push(`${ch.title || 'الفصل ' + ch.chapter_num}`);
+      lines.push('─'.repeat(30));
+      lines.push('');
+      lines.push(ch.content || '');
+      lines.push('');
+      lines.push('');
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${s.title}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('تم تنزيل الملف ✓', 'success');
+  } catch (err) {
+    toast('خطأ: ' + err.message, 'error');
   }
+}
+
+// ── تصدير PDF (عبر Print) ────────────────────────────────────
+async function exportPDF() {
+  toast('جارٍ تجهيز الصفحة للطباعة...', 'info');
+  try {
+    const res = await API.get(`/api/generate/export/${storyId}`);
+    if (!res?.ok) { toast('فشل التصدير', 'error'); return; }
+
+    const { story: s, chapters: chs } = res;
+
+    // فتح نافذة طباعة منفصلة بمحتوى القصة كاملة
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>${s.title}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500&display=swap');
+  body { font-family: 'Tajawal', sans-serif; max-width: 680px; margin: 0 auto; padding: 2cm; color: #1a1a1a; line-height: 2; }
+  h1   { font-family: 'Amiri', serif; font-size: 2.2rem; text-align: center; border-bottom: 2px solid #ccc; padding-bottom: .8rem; }
+  .meta { text-align: center; color: #555; font-size: .9rem; margin-bottom: 2rem; }
+  h2   { font-family: 'Amiri', serif; font-size: 1.5rem; margin-top: 3rem; border-bottom: 1px solid #eee; padding-bottom: .5rem; }
+  p    { text-indent: 1.5em; margin: .4rem 0; }
+  .chapter-break { page-break-before: always; }
+  @media print { .chapter-break:first-child { page-break-before: auto; } }
+</style>
+</head>
+<body>
+<h1>${s.title}</h1>
+<div class="meta">
+  ${parseGenres(s.genre).join(' | ')} · ${chs.length} فصل
+</div>`);
+
+    chs.forEach((ch, i) => {
+      if (i > 0) win.document.write('<div class="chapter-break"></div>');
+      win.document.write(`<h2>${ch.title || 'الفصل ' + ch.chapter_num}</h2>`);
+      const paras = (ch.content || '').split('\n').filter(Boolean);
+      paras.forEach(p => {
+        win.document.write(`<p>${p}</p>`);
+      });
+    });
+
+    win.document.write('</body></html>');
+    win.document.close();
+    setTimeout(() => win.print(), 800);
+  } catch (err) {
+    toast('خطأ: ' + err.message, 'error');
+  }
+}
+
+function goBack() {
+  if (document.referrer.includes('/dashboard')) history.back();
+  else location.href = '/library.html';
 }
 
 function escapeHtml(text) {
   return text
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/\n/g,'<br>');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
 init();
