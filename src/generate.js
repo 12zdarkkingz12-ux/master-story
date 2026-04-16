@@ -1,5 +1,6 @@
 // ============================================================
-//  Master Story — routes/generate.js
+//  Master Story v4.9 — routes/generate.js
+//  FIX #2: تأخير صغير قبل end() لضمان وصول done event
 // ============================================================
 const express  = require('express');
 const router   = express.Router();
@@ -12,9 +13,7 @@ router.post('/world', async (req, res) => {
   const start = Date.now();
   try {
     const { title, genre, style, darkness, model } = req.body;
-    if (!title) {
-      return res.status(400).json({ ok: false, error: 'العنوان مطلوب' });
-    }
+    if (!title) return res.status(400).json({ ok: false, error: 'العنوان مطلوب' });
     const prompt = prompts.buildWorldPrompt({ title, genre, style, darkness });
     const result = await ai.generate(prompt, { model, maxTokens: 2500 });
     await db.logGeneration({ type: 'world', model: result.model, duration_ms: Date.now() - start, status: 'success' });
@@ -40,7 +39,7 @@ router.post('/characters', async (req, res) => {
   }
 });
 
-// ── POST /api/generate/timeline ───────────────────────────────
+// ── POST /api/generate/timeline ──────────────────────────────
 router.post('/timeline', async (req, res) => {
   const start = Date.now();
   try {
@@ -56,14 +55,12 @@ router.post('/timeline', async (req, res) => {
 });
 
 // ── POST /api/generate/chapter ────────────────────────────────
-// FIX #3: لا نستخدم res.end() داخل finally — نتركه بعد الـ stream
+// FIX #2: تأخير 80ms قبل end() لضمان وصول done event للعميل
 router.post('/chapter', async (req, res) => {
   const start = Date.now();
   const { storyId, chapterNum, chapterNotes, chapterTitle, model } = req.body;
 
-  if (!storyId) {
-    return res.status(400).json({ ok: false, error: 'storyId مطلوب' });
-  }
+  if (!storyId) return res.status(400).json({ ok: false, error: 'storyId مطلوب' });
 
   // إعداد SSE
   res.setHeader('Content-Type',  'text/event-stream');
@@ -76,7 +73,13 @@ router.post('/chapter', async (req, res) => {
   };
 
   let ended = false;
-  const end = () => { if (!ended) { ended = true; res.end(); } };
+  const end = () => {
+    if (!ended) {
+      ended = true;
+      // FIX #2: تأخير صغير يضمن أن العميل استلم آخر event قبل إغلاق الاتصال
+      setTimeout(() => res.end(), 80);
+    }
+  };
 
   try {
     const [story, prevSummaries] = await Promise.all([
@@ -97,12 +100,12 @@ router.post('/chapter', async (req, res) => {
     await ai.streamGenerate(
       prompt,
       { model, maxTokens: 4000 },
-      (chunk) => { fullText += chunk; send('chunk', { text: chunk }); },
+      (chunk)                   => { fullText += chunk; send('chunk', { text: chunk }); },
       (text, elapsed, usedModel) => { fullText = text; modelUsed = usedModel; }
     );
 
-    const wordCount = fullText.trim().split(/\s+/).filter(Boolean).length;
-    const titleMatch = fullText.match(/الفصل\s+\d+[:\s]+([^\n]+)/);
+    const wordCount    = fullText.trim().split(/\s+/).filter(Boolean).length;
+    const titleMatch   = fullText.match(/الفصل\s+\d+[:\s]+([^\n]+)/);
     const detectedTitle = chapterTitle || (titleMatch ? titleMatch[1].trim() : `الفصل ${targetChapterNum}`);
 
     const chapter = await db.upsertChapter({
@@ -132,12 +135,10 @@ router.post('/chapter', async (req, res) => {
     send('error', { message: err.message });
   }
 
-  // نُنهي الاتصال دائماً — لكن مرة واحدة فقط
   end();
 });
 
 // ── POST /api/generate/summary ────────────────────────────────
-// FIX #6: نستخدم supabaseAdmin لضمان الكتابة
 router.post('/summary', async (req, res) => {
   try {
     const { chapterId, model } = req.body;
@@ -147,13 +148,24 @@ router.post('/summary', async (req, res) => {
     const prompt = prompts.buildSummaryPrompt(chapter.content, chapter.chapter_num);
     const result = await ai.generate(prompt, { model, maxTokens: 300 });
 
-    // FIX: supabaseAdmin بدل supabase
     await db.supabaseAdmin
       .from('chapters')
       .update({ summary: result.text.trim() })
       .eq('id', chapterId);
 
     res.json({ ok: true, summary: result.text.trim() });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── GET /api/generate/export/:storyId ────────────────────────
+// تصدير القصة كاملة (JSON للعميل ليحوّلها)
+router.get('/export/:storyId', async (req, res) => {
+  try {
+    const { story, chapters } = await db.getStoryForExport(req.params.storyId);
+    if (!story) return res.status(404).json({ ok: false, error: 'القصة غير موجودة' });
+    res.json({ ok: true, story, chapters });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

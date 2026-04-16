@@ -1,11 +1,11 @@
 // ============================================================
-//  Master Story — src/supabase.js
+//  Master Story v4.9 — src/supabase.js
 // ============================================================
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;           // anon key (للقراءة العامة)
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;  // service_role (للكتابة الآمنة)
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('⚠ تحذير: SUPABASE_URL أو SUPABASE_KEY غير موجودين في .env');
@@ -14,7 +14,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 // عميل القراءة (anon)
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// عميل الكتابة (service_role إذا توفر، وإلا يرجع لـ anon)
+// عميل الكتابة (service_role إذا توفر، وإلا anon)
 const supabaseAdmin = SERVICE_KEY
   ? createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -26,7 +26,7 @@ const supabaseAdmin = SERVICE_KEY
 async function getAllStories() {
   const { data, error } = await supabase
     .from('stories')
-    .select('id, title, genre, darkness, chapter_count, status, created_at')
+    .select('id, title, genre, darkness, chapter_count, total_words, last_chapter_at, status, created_at')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
@@ -105,6 +105,7 @@ async function getApprovedSummaries(storyId, limit = 10) {
   return data || [];
 }
 
+// FIX #4: null safety على data
 async function getNextChapterNum(storyId) {
   const { data, error } = await supabase
     .from('chapters')
@@ -114,7 +115,7 @@ async function getNextChapterNum(storyId) {
     .order('chapter_num', { ascending: false })
     .limit(1);
   if (error) throw error;
-  return data.length > 0 ? data[0].chapter_num + 1 : 1;
+  return (data && data.length > 0) ? data[0].chapter_num + 1 : 1;
 }
 
 async function upsertChapter(chapterData) {
@@ -127,6 +128,7 @@ async function upsertChapter(chapterData) {
   return data;
 }
 
+// FIX: approveChapter يحدّث chapter_count و total_words و last_chapter_at
 async function approveChapter(id) {
   const { data, error } = await supabaseAdmin
     .from('chapters')
@@ -135,11 +137,31 @@ async function approveChapter(id) {
     .select()
     .single();
   if (error) throw error;
-  // تحديث عدد الفصول — نحسب يدوياً بدل RPC لأمان أكثر
-  const chapters = await getChaptersByStory(data.story_id);
-  const count    = chapters.filter(c => c.status === 'approved').length;
-  await updateStory(data.story_id, { chapter_count: count });
+
+  // إعادة حساب إحصائيات القصة
+  await recalcStoryStats(data.story_id);
   return data;
+}
+
+// مساعد: إعادة حساب chapter_count + total_words + last_chapter_at
+async function recalcStoryStats(storyId) {
+  const { data: chapters } = await supabaseAdmin
+    .from('chapters')
+    .select('word_count, status, created_at')
+    .eq('story_id', storyId)
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false });
+
+  if (!chapters) return;
+
+  const count       = chapters.length;
+  const totalWords  = chapters.reduce((s, c) => s + (c.word_count || 0), 0);
+  const lastAt      = chapters.length > 0 ? chapters[0].created_at : null;
+
+  await supabaseAdmin
+    .from('stories')
+    .update({ chapter_count: count, total_words: totalWords, last_chapter_at: lastAt })
+    .eq('id', storyId);
 }
 
 async function deleteChapter(id) {
@@ -181,7 +203,21 @@ async function getAllConfig() {
 // ── سجل التوليد ───────────────────────────────────────────────
 
 async function logGeneration(logData) {
-  await supabaseAdmin.from('gen_log').insert(logData);
+  await supabaseAdmin.from('gen_log').insert(logData).catch(() => {});
+}
+
+// ── تصدير القصة كاملة ────────────────────────────────────────
+
+async function getStoryForExport(storyId) {
+  const [storyRes, chaptersRes] = await Promise.all([
+    supabase.from('stories').select('*').eq('id', storyId).single(),
+    supabase.from('chapters').select('*')
+      .eq('story_id', storyId)
+      .eq('status', 'approved')
+      .order('chapter_num', { ascending: true }),
+  ]);
+  if (storyRes.error) throw storyRes.error;
+  return { story: storyRes.data, chapters: chaptersRes.data || [] };
 }
 
 module.exports = {
@@ -189,6 +225,8 @@ module.exports = {
   getAllStories, getStoryById, createStory, updateStory, deleteStory,
   getChaptersByStory, getChapterById, getApprovedSummaries,
   getNextChapterNum, upsertChapter, approveChapter, deleteChapter,
+  recalcStoryStats,
   getConfig, setConfig, getAllConfig,
   logGeneration,
+  getStoryForExport,
 };
